@@ -32,6 +32,7 @@
       <nav class="nav-menu" id="nav-menu">
         <a href="#catalog-section" class="nav-link active" id="nav-link-catalog">교육과정 탐색</a>
         <a href="#status-section" class="nav-link" id="nav-link-status">나의 신청 현황 <span class="badge" id="app-badge">0</span></a>
+        <a href="#admin-section" class="nav-link" id="nav-link-admin"><i class="fa-solid fa-user-shield"></i> 관리자 모드</a>
       </nav>
       
       <div class="header-actions">
@@ -98,8 +99,33 @@
     <!-- Application Status Dashboard Section -->
     <section id="status-section" class="status-section">
       <div class="section-header">
-        <h2 class="section-title">📋 나의 신청 현황</h2>
+        <div class="section-title-wrapper" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+          <h2 class="section-title" style="margin: 0;">📋 나의 신청 현황</h2>
+          <span class="db-status-badge offline" id="db-status-badge">
+            <i class="fa-solid fa-circle status-dot"></i> <span id="db-status-text">로컬 저장소 모드</span>
+          </span>
+        </div>
         <p class="section-desc">접수하신 디지털새싹 교육 캠프의 신청 현황을 실시간으로 확인하고 관리하세요.</p>
+      </div>
+
+      <!-- DB Search / Lookup Box -->
+      <div class="status-search-card glass-card" style="margin-bottom: 24px;">
+        <h3 class="status-search-title"><i class="fa-solid fa-magnifying-glass"></i> 다른 기기에서 신청한 내역 조회하기</h3>
+        <p class="status-search-desc">신청 당시 입력한 학생 이름과 보호자 연락처를 정확히 입력하시면 데이터베이스에서 신청 내역을 조회해 내역에 동적 추가합니다.</p>
+        <div class="status-search-form">
+          <div class="search-input-group">
+            <i class="fa-regular fa-user input-icon"></i>
+            <input type="text" id="lookup-student-name" placeholder="학생 이름 (예: 홍길동)">
+          </div>
+          <div class="search-input-group">
+            <i class="fa-solid fa-phone input-icon"></i>
+            <input type="tel" id="lookup-guardian-phone" placeholder="보호자 연락처 (예: 010-1234-5678)" maxlength="13">
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-lookup-apps">내역 조회 <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <div id="lookup-results-info" class="lookup-results-info" style="display: none;">
+          <!-- Loaded via JS -->
+        </div>
       </div>
 
       <div class="status-dashboard-card">
@@ -127,6 +153,50 @@
             <p>신청된 교육 캠프가 없습니다.</p>
             <p class="empty-sub">상단의 교육과정 탐색에서 원하는 캠프를 선택하여 신청해 보세요!</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Admin Dashboard Section -->
+    <section id="admin-section" class="admin-section" style="display: none; padding-top: 100px; margin-top: -60px; margin-bottom: 80px;">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fa-solid fa-user-shield"></i> 관리자 대시보드</h2>
+        <p class="section-desc">디지털새싹 캠프 전체 신청 내역을 조회하고 실시간으로 접수 승인 및 반려 상태를 관리합니다.</p>
+      </div>
+
+      <div class="admin-dashboard-card glass-card">
+        <div class="admin-controls">
+          <div class="admin-stats">
+            <span class="admin-stat-chip">전체 <strong id="admin-stat-total">0</strong>건</span>
+            <span class="admin-stat-chip text-warning">대기 <strong id="admin-stat-pending">0</strong>건</span>
+            <span class="admin-stat-chip text-success">승인 <strong id="admin-stat-approved">0</strong>건</span>
+            <span class="admin-stat-chip text-danger">반려 <strong id="admin-stat-rejected">0</strong>건</span>
+          </div>
+          <button type="button" class="btn btn-secondary" id="btn-admin-refresh"><i class="fa-solid fa-rotate"></i> 새로고침</button>
+        </div>
+
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>접수번호</th>
+                <th>신청 캠프</th>
+                <th>학생 정보</th>
+                <th>보호자 정보</th>
+                <th>접수 일시</th>
+                <th>상태</th>
+                <th>관리 동작</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body">
+              <!-- Dynamically loaded via JavaScript -->
+              <tr>
+                <td colspan="7" class="loading-td">
+                  <i class="fa-solid fa-spinner fa-spin"></i> 내역을 불러오는 중...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>

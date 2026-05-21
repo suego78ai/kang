@@ -1,0 +1,14 @@
+{
+  "name": "digitalsaessak-camp",
+  "version": "1.0.0",
+  "description": "디지털새싹 SW·AI 교육캠프 신청 관리 시스템 백엔드 서버",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "private": true
+}

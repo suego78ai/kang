@@ -170,20 +170,38 @@ const DOM = {
   summaryPending: document.getElementById("summary-pending"),
   summaryApproved: document.getElementById("summary-approved"),
   
+  // Admin Dashboard
+  adminSection: document.getElementById("admin-section"),
+  adminStatTotal: document.getElementById("admin-stat-total"),
+  adminStatPending: document.getElementById("admin-stat-pending"),
+  adminStatApproved: document.getElementById("admin-stat-approved"),
+  adminStatRejected: document.getElementById("admin-stat-rejected"),
+  btnAdminRefresh: document.getElementById("btn-admin-refresh"),
+  adminTableBody: document.getElementById("admin-table-body"),
+  navLinkAdmin: document.getElementById("nav-link-admin"),
+  navLinkCatalog: document.getElementById("nav-link-catalog"),
+  navLinkStatus: document.getElementById("nav-link-status"),
+  catalogSection: document.getElementById("catalog-section"),
+  statusSection: document.getElementById("status-section"),
+  
   // Toast
   toast: document.getElementById("toast"),
   toastMessage: document.querySelector(".toast-message")
 };
 
 // ============================================================================
-// 4. Initializer & Theme Config
+// 4. Initializer & Theme Config & APIService
 // ============================================================================
-document.addEventListener("DOMContentLoaded", () => {
+const API_URL = "http://localhost:3000/api";
+let isOnline = false;
+
+document.addEventListener("DOMContentLoaded", async () => {
   initTheme();
   loadApplications();
   renderCourses();
   setupEventListeners();
   updateStatusDashboard();
+  await checkConnection();
 });
 
 // 테마 로드 및 설정
@@ -233,6 +251,130 @@ function loadApplications() {
     }
   }
   updateBadgeCount();
+}
+
+// ============================================================================
+// 4.5 APIService & Real-Time Sync
+// ============================================================================
+const APIService = {
+  async checkHealth() {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 1000);
+      const res = await fetch(`${API_URL}/health`, { signal: controller.signal });
+      clearTimeout(id);
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async getAllApplications() {
+    const res = await fetch(`${API_URL}/applications`);
+    if (!res.ok) throw new Error("Failed to fetch applications");
+    return await res.json();
+  },
+
+  async getApplicationsBySearch(studentName, guardianPhone) {
+    const params = new URLSearchParams({ studentName, guardianPhone });
+    const res = await fetch(`${API_URL}/applications?${params.toString()}`);
+    if (!res.ok) throw new Error("Failed to search applications");
+    return await res.json();
+  },
+
+  async getApplication(id) {
+    const res = await fetch(`${API_URL}/applications/${id}`);
+    if (res.status === 404) {
+      const err = new Error("Not Found");
+      err.status = 404;
+      throw err;
+    }
+    if (!res.ok) throw new Error("Failed to fetch application");
+    return await res.json();
+  },
+
+  async createApplication(applicationData) {
+    const res = await fetch(`${API_URL}/applications`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(applicationData)
+    });
+    if (!res.ok) throw new Error("Failed to create application");
+    return await res.json();
+  },
+
+  async updateApplicationStatus(id, status) {
+    const res = await fetch(`${API_URL}/applications/${id}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error("Failed to update status");
+    return await res.json();
+  },
+
+  async deleteApplication(id) {
+    const res = await fetch(`${API_URL}/applications/${id}`, {
+      method: "DELETE"
+    });
+    if (!res.ok) throw new Error("Failed to delete application");
+    return await res.json();
+  }
+};
+
+async function checkConnection() {
+  const badge = document.getElementById("db-status-badge");
+  const textEl = document.getElementById("db-status-text");
+  
+  if (!badge || !textEl) return;
+  
+  const connected = await APIService.checkHealth();
+  if (connected) {
+    isOnline = true;
+    badge.className = "db-status-badge online";
+    textEl.innerHTML = "실시간 DB 모드";
+    showToast("🟢 실시간 데이터베이스가 연결되었습니다.");
+    await syncApplications();
+  } else {
+    isOnline = false;
+    badge.className = "db-status-badge offline";
+    textEl.innerHTML = "로컬 저장소 모드";
+    showToast("⚠️ 실시간 DB 연결이 제한되어 로컬 저장소 모드로 작동합니다.");
+  }
+}
+
+async function syncApplications() {
+  if (state.applications.length === 0) return;
+  
+  let updated = false;
+  const promises = state.applications.map(async (app) => {
+    try {
+      const fresh = await APIService.getApplication(app.id);
+      if (fresh && fresh.status !== app.status) {
+        app.status = fresh.status;
+        updated = true;
+      }
+    } catch (e) {
+      if (e.status === 404) {
+        try {
+          await APIService.createApplication(app);
+        } catch (uploadErr) {
+          console.error("Failed to sync application to server", uploadErr);
+        }
+      }
+    }
+  });
+  
+  await Promise.allSettled(promises);
+  if (updated) {
+    localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+    updateStatusDashboard();
+    updateBadgeCount();
+  }
 }
 
 function updateBadgeCount() {
@@ -616,7 +758,7 @@ function formatPhoneNumber(value) {
 // ============================================================================
 // 8. Application Form Submission
 // ============================================================================
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
   e.preventDefault();
   
   if (!validateStep3()) {
@@ -627,7 +769,7 @@ function handleFormSubmit(e) {
   const timestamp = Date.now();
   const appId = `DS-${Math.floor(100000 + Math.random() * 900000)}`; // DS prefix for 디지털새싹
   
-  const newApp = {
+  let newApp = {
     id: appId,
     courseId: DOM.selectedCourseId.value,
     courseTitle: DOM.selectedCourseTitle.value,
@@ -645,6 +787,19 @@ function handleFormSubmit(e) {
     }),
     status: "pending" // pending | approved
   };
+  
+  if (isOnline) {
+    try {
+      // Save to server
+      const savedApp = await APIService.createApplication(newApp);
+      if (savedApp) {
+        newApp = savedApp; // Use the server formatted app
+      }
+    } catch (err) {
+      console.error("Failed to save to server database:", err);
+      showToast("⚠️ 실시간 DB 저장에 실패하여 로컬 저장소 모드로 임시 접수합니다.");
+    }
+  }
   
   // 로컬 스토리지 저장
   state.applications.unshift(newApp);
@@ -713,9 +868,18 @@ function updateStatusDashboard() {
   `;
 }
 
-function cancelApplication(appId) {
+async function cancelApplication(appId) {
   if (!confirm("정말로 해당 디지털새싹 캠프 신청을 취소하시겠습니까?\n취소 후에는 신청 내용 복구가 불가능합니다.")) {
     return;
+  }
+  
+  if (isOnline) {
+    try {
+      await APIService.deleteApplication(appId);
+    } catch (err) {
+      console.error("Failed to delete application on server:", err);
+      showToast("⚠️ 실시간 DB에서 삭제하는 데 실패했습니다. 로컬 데이터를 먼저 삭제합니다.");
+    }
   }
   
   state.applications = state.applications.filter(a => a.id !== appId);
@@ -726,6 +890,7 @@ function cancelApplication(appId) {
   
   showToast("🗑️ 신청이 성공적으로 취소되었습니다.");
 }
+window.cancelApplication = cancelApplication;
 
 // ============================================================================
 // 10. Event Listeners setups
@@ -791,17 +956,31 @@ function setupEventListeners() {
     }
   });
   
-  // 모바일 메뉴 링크 클릭 시 메뉴 닫기
-  DOM.navMenu.querySelectorAll(".nav-link").forEach(link => {
-    link.addEventListener("click", () => {
-      DOM.navMenu.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
-      link.classList.add("active");
-      
-      DOM.navMenu.classList.remove("active");
-      const icon = DOM.mobileMenuToggle.querySelector("i");
-      icon.className = "fa-solid fa-bars";
-    });
+  // 네비게이션 탭 뷰 라우팅 및 모바일 메뉴 닫기
+  DOM.navLinkCatalog.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchTab("catalog");
+    window.scrollTo({ top: DOM.catalogSection.offsetTop - 80, behavior: 'smooth' });
+    closeMobileMenu();
   });
+  DOM.navLinkStatus.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchTab("status");
+    window.scrollTo({ top: DOM.statusSection.offsetTop - 80, behavior: 'smooth' });
+    closeMobileMenu();
+  });
+  DOM.navLinkAdmin.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchTab("admin");
+    window.scrollTo({ top: DOM.adminSection.offsetTop - 80, behavior: 'smooth' });
+    closeMobileMenu();
+  });
+
+  function closeMobileMenu() {
+    DOM.navMenu.classList.remove("active");
+    const icon = DOM.mobileMenuToggle.querySelector("i");
+    if (icon) icon.className = "fa-solid fa-bars";
+  }
   
   // 모달 영역 바깥 클릭 시 닫기
   DOM.detailsModal.addEventListener("click", (e) => {
@@ -967,7 +1146,25 @@ function setupEventListeners() {
     // 메뉴 하이라이트 동기화
     DOM.navMenu.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
     document.getElementById("nav-link-status").classList.add("active");
+    switchTab("status");
   });
+
+  // 신청 현황 다른 기기 내역 조회 버튼 및 연락처 필터링
+  const btnLookup = document.getElementById("btn-lookup-apps");
+  if (btnLookup) {
+    btnLookup.addEventListener("click", handleLookup);
+  }
+  const lookupPhone = document.getElementById("lookup-guardian-phone");
+  if (lookupPhone) {
+    lookupPhone.addEventListener("input", (e) => {
+      e.target.value = formatPhoneNumber(e.target.value);
+    });
+  }
+
+  // 관리자 새로고침 버튼
+  if (DOM.btnAdminRefresh) {
+    DOM.btnAdminRefresh.addEventListener("click", loadAdminDashboard);
+  }
 }
 
 function resetSearchAndFilters() {
@@ -999,4 +1196,289 @@ function showToast(message) {
   toastTimeout = setTimeout(() => {
     DOM.toast.classList.remove("active");
   }, 3500);
+}
+
+// ============================================================================
+// 12. Routing & Admin Mode Logic
+// ============================================================================
+function switchTab(targetTab) {
+  if (targetTab === 'admin') {
+    DOM.catalogSection.style.display = 'none';
+    DOM.statusSection.style.display = 'none';
+    DOM.adminSection.style.display = 'block';
+    
+    DOM.navMenu.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    DOM.navLinkAdmin.classList.add('active');
+    
+    loadAdminDashboard();
+  } else {
+    DOM.catalogSection.style.display = 'block';
+    DOM.statusSection.style.display = 'block';
+    DOM.adminSection.style.display = 'none';
+    
+    DOM.navMenu.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    if (targetTab === 'catalog') {
+      DOM.navLinkCatalog.classList.add('active');
+    } else if (targetTab === 'status') {
+      DOM.navLinkStatus.classList.add('active');
+    }
+  }
+}
+
+async function loadAdminDashboard() {
+  DOM.adminTableBody.innerHTML = `
+    <tr>
+      <td colspan="7" class="loading-td">
+        <i class="fa-solid fa-spinner fa-spin"></i> 내역을 불러오는 중...
+      </td>
+    </tr>
+  `;
+  
+  let apps = [];
+  if (isOnline) {
+    try {
+      apps = await APIService.getAllApplications();
+    } catch (err) {
+      showToast("⚠️ 관리자 데이터를 불러오는 데 실패했습니다.");
+      DOM.adminTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="loading-td" style="color: var(--accent);">
+            <i class="fa-solid fa-triangle-exclamation"></i> 서버 통신 오류가 발생했습니다.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+  } else {
+    apps = state.applications;
+  }
+  
+  DOM.adminStatTotal.textContent = apps.length;
+  DOM.adminStatPending.textContent = apps.filter(a => a.status === "pending").length;
+  DOM.adminStatApproved.textContent = apps.filter(a => a.status === "approved").length;
+  DOM.adminStatRejected.textContent = apps.filter(a => a.status === "rejected").length;
+  
+  if (apps.length === 0) {
+    DOM.adminTableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="loading-td">
+          <i class="fa-regular fa-clipboard"></i> 신청된 교육 캠프 내역이 없습니다.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  DOM.adminTableBody.innerHTML = apps.map(app => `
+    <tr>
+      <td>${app.id}</td>
+      <td>
+        <div class="course-title-sub">${app.courseTitle}</div>
+        <div class="course-id-sub">${app.courseId}</div>
+      </td>
+      <td>
+        <div class="user-info-main">${app.studentName}</div>
+        <div class="user-info-sub">${getSchoolTypeKorean(app.studentSchoolType)} / ${app.studentSchool} ${app.studentGrade}학년</div>
+      </td>
+      <td>
+        <div class="user-info-main">${app.guardianName}</div>
+        <div class="user-info-sub">${app.guardianPhone}</div>
+      </td>
+      <td>${app.date}</td>
+      <td>
+        <span class="status-badge ${getStatusBadgeClass(app.status)}">
+          <i class="fa-solid ${getStatusBadgeIcon(app.status)}"></i>
+          ${getStatusTextKorean(app.status)}
+        </span>
+      </td>
+      <td>
+        <div class="btn-action-group">
+          ${app.status === 'pending' ? `
+            <button class="btn-action btn-approve" onclick="updateAppStatus('${app.id}', 'approved')">
+              <i class="fa-solid fa-check"></i> 승인
+            </button>
+            <button class="btn-action btn-reject" onclick="updateAppStatus('${app.id}', 'rejected')">
+              <i class="fa-solid fa-xmark"></i> 반려
+            </button>
+          ` : `
+            <button class="btn-action btn-reject" style="opacity: 0.5;" onclick="updateAppStatus('${app.id}', 'pending')">
+              <i class="fa-solid fa-rotate-left"></i> 대기 전환
+            </button>
+          `}
+          <button class="btn-action btn-delete-admin" onclick="deleteAppAdmin('${app.id}')">
+            <i class="fa-solid fa-trash-can"></i> 삭제
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function getSchoolTypeKorean(type) {
+  switch(type) {
+    case 'elementary': return '초등학교';
+    case 'middle': return '중학교';
+    case 'high': return '고등학교';
+    default: return type;
+  }
+}
+
+function getStatusBadgeClass(status) {
+  switch(status) {
+    case 'approved': return 'badge-approved';
+    case 'rejected': return 'badge-rejected';
+    default: return 'badge-pending';
+  }
+}
+
+function getStatusBadgeIcon(status) {
+  switch(status) {
+    case 'approved': return 'fa-check';
+    case 'rejected': return 'fa-xmark';
+    default: return 'fa-spinner fa-spin';
+  }
+}
+
+function getStatusTextKorean(status) {
+  switch(status) {
+    case 'approved': return '승인 완료';
+    case 'rejected': return '반려됨';
+    default: return '접수 완료 (대기)';
+  }
+}
+
+window.updateAppStatus = async function(appId, newStatus) {
+  if (isOnline) {
+    try {
+      const updated = await APIService.updateApplicationStatus(appId, newStatus);
+      showToast(`💼 신청 상태가 '${getStatusTextKorean(newStatus)}'로 변경되었습니다.`);
+      
+      const localIdx = state.applications.findIndex(a => a.id === appId);
+      if (localIdx !== -1) {
+        state.applications[localIdx].status = newStatus;
+        localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+        updateStatusDashboard();
+      }
+      
+      loadAdminDashboard();
+    } catch (err) {
+      showToast("⚠️ 상태 업데이트에 실패했습니다.");
+    }
+  } else {
+    const localIdx = state.applications.findIndex(a => a.id === appId);
+    if (localIdx !== -1) {
+      state.applications[localIdx].status = newStatus;
+      localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+      showToast(`💼 [로컬] 신청 상태가 '${getStatusTextKorean(newStatus)}'로 변경되었습니다.`);
+      updateStatusDashboard();
+      loadAdminDashboard();
+    } else {
+      showToast("⚠️ 해당 내역을 찾을 수 없습니다.");
+    }
+  }
+};
+
+window.deleteAppAdmin = async function(appId) {
+  if (!confirm("정말로 해당 신청 내역을 강제 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
+    return;
+  }
+  
+  if (isOnline) {
+    try {
+      await APIService.deleteApplication(appId);
+      showToast("🗑️ 신청 내역이 서버에서 삭제되었습니다.");
+      
+      state.applications = state.applications.filter(a => a.id !== appId);
+      localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+      updateBadgeCount();
+      updateStatusDashboard();
+      
+      loadAdminDashboard();
+    } catch (err) {
+      showToast("⚠️ 삭제 처리에 실패했습니다.");
+    }
+  } else {
+    state.applications = state.applications.filter(a => a.id !== appId);
+    localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+    updateBadgeCount();
+    updateStatusDashboard();
+    loadAdminDashboard();
+    showToast("🗑️ [로컬] 신청 내역이 삭제되었습니다.");
+  }
+};
+
+async function handleLookup() {
+  const nameInput = document.getElementById("lookup-student-name");
+  const phoneInput = document.getElementById("lookup-guardian-phone");
+  const resultsInfo = document.getElementById("lookup-results-info");
+  
+  if (!nameInput || !phoneInput || !resultsInfo) return;
+  
+  const studentName = nameInput.value.trim();
+  const guardianPhone = phoneInput.value.trim();
+  
+  if (!studentName || !guardianPhone) {
+    showToast("⚠️ 학생 이름과 보호자 연락처를 모두 입력해주세요.");
+    return;
+  }
+  
+  const phoneRegex = /^01[016789]-\d{3,4}-\d{4}$/;
+  if (!phoneRegex.test(guardianPhone)) {
+    showToast("⚠️ 올바른 휴대전화 번호 형식(예: 010-1234-5678)으로 입력해주세요.");
+    return;
+  }
+  
+  resultsInfo.style.display = "flex";
+  resultsInfo.className = "lookup-results-info";
+  resultsInfo.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 데이터베이스 검색 중...`;
+  
+  if (!isOnline) {
+    resultsInfo.className = "lookup-results-info warning";
+    resultsInfo.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 현재 로컬 저장소 모드입니다. 실시간 조회를 하려면 로컬 서버를 작동 시켜주세요.`;
+    setTimeout(() => { resultsInfo.style.display = "none"; }, 4000);
+    return;
+  }
+  
+  try {
+    const matched = await APIService.getApplicationsBySearch(studentName, guardianPhone);
+    
+    if (matched && matched.length > 0) {
+      let addedCount = 0;
+      matched.forEach(app => {
+        const exists = state.applications.some(a => a.id === app.id);
+        if (!exists) {
+          state.applications.unshift(app);
+          addedCount++;
+        } else {
+          const localIdx = state.applications.findIndex(a => a.id === app.id);
+          state.applications[localIdx].status = app.status;
+        }
+      });
+      
+      if (addedCount > 0) {
+        localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+        updateBadgeCount();
+        updateStatusDashboard();
+        showToast(`🎉 새로운 신청 내역 ${addedCount}건을 조회하여 내역에 추가했습니다!`);
+        resultsInfo.className = "lookup-results-info success";
+        resultsInfo.innerHTML = `<i class="fa-solid fa-circle-check"></i> 성공: ${matched.length}건의 신청 내역을 동기화했습니다. (새로 추가: ${addedCount}건)`;
+      } else {
+        localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+        updateStatusDashboard();
+        resultsInfo.className = "lookup-results-info success";
+        resultsInfo.innerHTML = `<i class="fa-solid fa-circle-check"></i> 이미 목록에 등록된 신청 내역 ${matched.length}건을 동기화했습니다.`;
+      }
+    } else {
+      resultsInfo.className = "lookup-results-info error";
+      resultsInfo.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 검색 결과 일치하는 신청 내역이 없습니다.`;
+    }
+  } catch (err) {
+    resultsInfo.className = "lookup-results-info error";
+    resultsInfo.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 서버 통신 에러가 발생했습니다.`;
+    showToast("⚠️ 조회 중 에러가 발생했습니다.");
+  }
+  
+  setTimeout(() => {
+    resultsInfo.style.display = "none";
+  }, 5000);
 }
