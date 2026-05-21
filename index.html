@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="디지털새싹 SW·AI 캠프에서 초·중·고등학생을 위한 맞춤형 SW·AI 교육 프로그램을 확인하고 간편하게 신청하세요. 실시간 신청 현황 관리 기능도 제공합니다.">
+  <title>디지털새싹 SW·AI 캠프 | 교육과정 신청 및 관리</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="dark-theme">
+  <!-- Glow Background Effects -->
+  <div class="glow-bg glow-bg-1"></div>
+  <div class="glow-bg glow-bg-2"></div>
+
+  <!-- Navigation Bar -->
+  <header class="main-header">
+    <div class="header-container">
+      <a href="#" class="logo" id="logo-link">
+        <span class="logo-accent">디지털</span>새싹 캠프
+      </a>
+      
+      <nav class="nav-menu" id="nav-menu">
+        <a href="#catalog-section" class="nav-link active" id="nav-link-catalog">교육과정 탐색</a>
+        <a href="#status-section" class="nav-link" id="nav-link-status">나의 신청 현황 <span class="badge" id="app-badge">0</span></a>
+      </nav>
+      
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="테마 변경">
+          <i class="fa-solid fa-sun icon-sun"></i>
+          <i class="fa-solid fa-moon icon-moon"></i>
+        </button>
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="메뉴 열기">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="badge-glow">2026 NEW CURRICULUM</div>
+      <h1 class="hero-title">새싹이 자라 나무가 되듯,<br><span class="gradient-text">디지털새싹 SW·AI 캠프</span></h1>
+      <p class="hero-subtitle">초·중·고등학생을 위한 전액 무료 SW·AI 교육 프로그램! 쉽고 재미있게 배우며 미래를 향한 디지털 역량을 키워보세요.</p>
+      <div class="hero-buttons">
+        <a href="#catalog-section" class="btn btn-primary btn-glow">교육과정 둘러보기</a>
+        <a href="#status-section" class="btn btn-secondary">내 신청내역 조회</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Wrapper -->
+  <main class="content-wrapper">
+    
+    <!-- Course Catalog Section -->
+    <section id="catalog-section" class="catalog-section">
+      <div class="section-header">
+        <h2 class="section-title">🖥️ 교육과정 탐색</h2>
+        <p class="section-desc">현재 모집 중인 디지털새싹 SW·AI 캠프입니다. 참가 대상별 교육과정을 둘러보세요.</p>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div class="filter-bar">
+        <div class="category-filters" id="category-filters">
+          <button class="filter-chip active" data-category="all">전체</button>
+          <button class="filter-chip" data-category="elementary">초등 과정</button>
+          <button class="filter-chip" data-category="middle">중등 과정</button>
+          <button class="filter-chip" data-category="high">고등 과정</button>
+          <button class="filter-chip" data-category="family">가족 과정</button>
+        </div>
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="course-search" placeholder="원하는 과정이나 강사를 검색해보세요...">
+          <button id="search-clear-btn" class="search-clear-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <!-- Course Catalog Grid -->
+      <div class="course-grid" id="course-grid">
+        <!-- Dynmically loaded via JavaScript -->
+        <div class="loading-state">
+          <i class="fa-solid fa-spinner fa-spin loading-icon"></i>
+          <p>교육과정 목록을 불러오는 중입니다...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Application Status Dashboard Section -->
+    <section id="status-section" class="status-section">
+      <div class="section-header">
+        <h2 class="section-title">📋 나의 신청 현황</h2>
+        <p class="section-desc">접수하신 디지털새싹 교육 캠프의 신청 현황을 실시간으로 확인하고 관리하세요.</p>
+      </div>
+
+      <div class="status-dashboard-card">
+        <div class="status-summary">
+          <div class="summary-item">
+            <span class="summary-label">총 신청 건수</span>
+            <span class="summary-value" id="summary-total">0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">심사 중</span>
+            <span class="summary-value" id="summary-pending">0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">승인 완료</span>
+            <span class="summary-value text-success" id="summary-approved">0</span>
+          </div>
+        </div>
+        
+        <div class="applications-container" id="applications-container">
+          <!-- Dynamically loaded via JavaScript -->
+          <div class="empty-state">
+            <i class="fa-regular fa-clipboard empty-icon"></i>
+            <p>신청된 교육 캠프가 없습니다.</p>
+            <p class="empty-sub">상단의 교육과정 탐색에서 원하는 캠프를 선택하여 신청해 보세요!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Foot-note / Footer -->
+  <footer class="main-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="footer-logo"><span class="logo-accent">디지털</span>새싹 캠프</span>
+        <p class="footer-desc">교육부와 한국과학창의재단이 주관하고 함께하는 청소년 SW·AI 교육 프로그램입니다.</p>
+      </div>
+      <div class="footer-links">
+        <h4>바로가기</h4>
+        <ul>
+          <li><a href="#catalog-section">교육과정 목록</a></li>
+          <li><a href="#status-section">나의 신청 현황</a></li>
+          <li><a href="https://github.com/suego78ai/kang" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> Repository</a></li>
+        </ul>
+      </div>
+      <div class="footer-info">
+        <h4>서비스 정보</h4>
+        <p>디지털새싹 캠프 | 운영: suego78ai</p>
+        <p>이메일: support@suego78ai.net | 대표전화: 1544-0000</p>
+        <p class="copyright">&copy; 2026 디지털새싹 SW·AI 캠프. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal 1: Course Details Modal -->
+  <div class="modal-overlay" id="details-modal">
+    <div class="modal-content glass-card">
+      <button class="modal-close" id="details-modal-close" aria-label="모달 닫기">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="modal-body" id="details-modal-body">
+        <!-- Dynamically loaded via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Multi-step Application Wizard Modal -->
+  <div class="modal-overlay" id="apply-modal">
+    <div class="modal-content glass-card apply-modal-content">
+      <button class="modal-close" id="apply-modal-close" aria-label="모달 닫기">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      
+      <!-- Progress Tracker -->
+      <div class="progress-tracker">
+        <div class="step-indicator active" data-step="1">
+          <span class="step-num">1</span>
+          <span class="step-text">학생 정보</span>
+        </div>
+        <div class="step-line" id="step-line-1"></div>
+        <div class="step-indicator" data-step="2">
+          <span class="step-num">2</span>
+          <span class="step-text">보호자 정보</span>
+        </div>
+        <div class="step-line" id="step-line-2"></div>
+        <div class="step-indicator" data-step="3">
+          <span class="step-num">3</span>
+          <span class="step-text">동의 서약</span>
+        </div>
+        <div class="step-line" id="step-line-3"></div>
+        <div class="step-indicator" data-step="4">
+          <span class="step-num">4</span>
+          <span class="step-text">신청 완료</span>
+        </div>
+      </div>
+
+      <form id="apply-form" class="apply-form" novalidate>
+        <!-- Step 1: Student Information -->
+        <div class="form-step active" data-step="1">
+          <h3 class="form-step-title">👤 수강 학생 인적 사항</h3>
+          <p class="form-step-desc">안내 및 반 편성 조정을 위해 정확한 학생 정보를 입력해주세요.</p>
+          
+          <div class="form-group">
+            <label for="student-name">학생 이름 <span class="required">*</span></label>
+            <input type="text" id="student-name" name="studentName" placeholder="홍길동" required>
+            <span class="error-msg" id="student-name-error">학생 이름을 2자 이상 입력해주세요.</span>
+          </div>
+          
+          <div class="form-group">
+            <label for="student-school-type">학교 구분 <span class="required">*</span></label>
+            <select id="student-school-type" name="studentSchoolType" required>
+              <option value="" disabled selected>선택하세요</option>
+              <option value="elementary">초등학교</option>
+              <option value="middle">중학교</option>
+              <option value="high">고등학교</option>
+            </select>
+            <span class="error-msg" id="school-type-error">학교 구분을 선택해주세요.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="student-school">학교명 <span class="required">*</span></label>
+            <input type="text" id="student-school" name="studentSchool" placeholder="새싹초등학교" required>
+            <span class="error-msg" id="school-error">올바른 학교명(예: 새싹초등학교)을 입력해주세요.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="student-grade">학년 <span class="required">*</span></label>
+            <select id="student-grade" name="studentGrade" required>
+              <option value="" disabled selected>선택하세요</option>
+              <option value="1">1학년</option>
+              <option value="2">2학년</option>
+              <option value="3">3학년</option>
+              <option value="4">4학년</option>
+              <option value="5">5학년</option>
+              <option value="6">6학년</option>
+            </select>
+            <span class="error-msg" id="grade-error">학년을 선택해주세요.</span>
+          </div>
+
+          <div class="form-actions">
+            <div></div> <!-- Spacer -->
+            <button type="button" class="btn btn-primary" id="btn-next-1">다음 단계 <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Step 2: Parent/Guardian Info & Details -->
+        <div class="form-step" data-step="2">
+          <h3 class="form-step-title">📞 보호자 정보 및 신청 상세</h3>
+          <p class="form-step-desc">비상시 연락을 위한 보호자 연락처와 특이사항을 적어주세요.</p>
+          
+          <div class="form-group">
+            <label>선택한 교육과정</label>
+            <input type="text" id="selected-course-title" class="input-readonly" readonly>
+            <input type="hidden" id="selected-course-id">
+          </div>
+
+          <div class="form-group">
+            <label for="guardian-name">보호자 이름 <span class="required">*</span></label>
+            <input type="text" id="guardian-name" name="guardianName" placeholder="김철수" required>
+            <span class="error-msg" id="guardian-name-error">보호자 이름을 2자 이상 입력해주세요.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="guardian-phone">보호자 연락처 <span class="required">*</span></label>
+            <input type="tel" id="guardian-phone" name="guardianPhone" placeholder="010-1234-5678" required>
+            <span class="error-msg" id="guardian-phone-error">올바른 휴대전화 번호(예: 010-1234-5678)를 입력해주세요.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="guardian-email">보호자 이메일 <span class="required">*</span></label>
+            <input type="email" id="guardian-email" name="guardianEmail" placeholder="guardian@example.com" required>
+            <span class="error-msg" id="guardian-email-error">올바른 이메일 주소를 입력해주세요.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="user-motivation">캠프 참여 동기 <span class="required">*</span></label>
+            <textarea id="user-motivation" name="userMotivation" rows="3" placeholder="이번 SW·AI 캠프에 학생이 참여하고 싶은 이유와 기대하는 점을 간단히 적어주세요. (최소 20자)" required></textarea>
+            <span class="error-msg" id="motivation-error">참여 동기를 최소 20자 이상 작성해주세요. (현재 <span id="motivation-length">0</span>자)</span>
+          </div>
+
+          <div class="form-group">
+            <label for="student-notes">알레르기 및 건강상 특이사항</label>
+            <textarea id="student-notes" name="studentNotes" rows="2" placeholder="복용 중인 약, 알레르기, 건강상 주의점 등 운영진이 파악해야 할 사항이 있다면 적어주세요. (없으면 '없음' 기재)"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="btn-prev-2"><i class="fa-solid fa-arrow-left"></i> 이전</button>
+            <button type="button" class="btn btn-primary" id="btn-next-2">다음 단계 <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Step 3: Consent & Pledge -->
+        <div class="form-step" data-step="3">
+          <h3 class="form-step-title">⚖️ 안전 서약 및 개인정보 동의</h3>
+          <p class="form-step-desc">안전한 캠프 운영을 위해 서약서 및 개인정보 수집에 동의해주세요.</p>
+
+          <div class="form-group">
+            <label>캠프 안전 서약서</label>
+            <div class="consent-text-block glass-card" style="padding: 16px; font-size: 0.82rem; color: var(--text-secondary); max-height: 120px; overflow-y: auto; margin-bottom: 8px;">
+              본인은 디지털새싹 SW·AI 교육 캠프 참가자로서, 교육 기간 동안 지도교사의 지도 지침을 성실히 따르고 안전 규칙을 준수할 것을 서약합니다. 특히 안전사고 예방을 위한 주의사항을 엄수하며, 고의 또는 중대한 과실로 발생한 사고에 대한 책임은 본인에게 있음을 인지합니다.
+            </div>
+            <div class="checkbox-group">
+              <label class="checkbox-label" for="agree-safety">
+                <input type="checkbox" id="agree-safety" name="agreeSafety" required>
+                <span class="checkbox-custom"></span>
+                <span>위 안전 서약서의 내용을 충분히 숙지하였으며 동의합니다. <span class="required">*</span></span>
+              </label>
+              <span class="error-msg" id="safety-error">안전 서약서에 동의해야 신청이 가능합니다.</span>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 20px;">
+            <label>개인정보 수집·이용 동의</label>
+            <div class="consent-text-block glass-card" style="padding: 16px; font-size: 0.82rem; color: var(--text-secondary); max-height: 120px; overflow-y: auto; margin-bottom: 8px;">
+              디지털새싹 SW·AI 캠프 주관기관은 교육 참여자 선발, 출석 관리, 학적 증명서 발급 및 지원 혜택 제공 등을 목적으로 신청자의 개인정보(성명, 학교명, 학년, 보호자 성명/연락처/이메일)를 수집·이용합니다. 수집된 정보는 교육 종료 후 관계 법령에 따라 안전하게 보관 및 폐기됩니다.
+            </div>
+            <div class="checkbox-group">
+              <label class="checkbox-label" for="agree-privacy">
+                <input type="checkbox" id="agree-privacy" name="agreePrivacy" required>
+                <span class="checkbox-custom"></span>
+                <span>개인정보 수집 및 이용에 동의합니다. <span class="required">*</span></span>
+              </label>
+              <span class="error-msg" id="privacy-error">개인정보 수집 및 이용 동의에 체크해야 신청이 가능합니다.</span>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="btn-prev-3"><i class="fa-solid fa-arrow-left"></i> 이전</button>
+            <button type="submit" class="btn btn-primary btn-glow" id="btn-submit">수강 신청 완료 <i class="fa-solid fa-check"></i></button>
+          </div>
+        </div>
+
+        <!-- Step 4: Success Screen -->
+        <div class="form-step success-step" data-step="4">
+          <div class="success-icon-wrapper">
+            <i class="fa-solid fa-circle-check success-check-icon"></i>
+          </div>
+          <h3 class="form-step-title">🎉 수강 신청 완료!</h3>
+          <p class="form-step-desc">디지털새싹 캠프 신청서가 정상적으로 접수되었습니다.</p>
+          
+          <div class="receipt-card glass-card">
+            <div class="receipt-row">
+              <span class="receipt-label">신청 번호</span>
+              <span class="receipt-value" id="receipt-no">APP-00000</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">신청 캠프</span>
+              <span class="receipt-value" id="receipt-course">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">참가 학생</span>
+              <span class="receipt-value" id="receipt-student-name">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">학교 / 학년</span>
+              <span class="receipt-value" id="receipt-school-grade">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">보호자 성함</span>
+              <span class="receipt-value" id="receipt-guardian-name">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">신청 일시</span>
+              <span class="receipt-value" id="receipt-date">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">캠프 비용</span>
+              <span class="receipt-value text-success" id="receipt-price">전액 무료 (교육부·창의재단)</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">접수 상태</span>
+              <span class="receipt-value status-badge badge-pending">접수 완료 (대기)</span>
+            </div>
+          </div>
+          
+          <p class="success-notice">학생 매칭 및 반 정원 선발 심사는 접수 후 약 2~3 영업일 내로 진행됩니다. 선발 여부는 입력해 주신 보호자 연락처와 이메일로 개별 연락 드립니다.</p>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="btn-view-status">나의 신청 현황 확인</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-circle-info toast-icon"></i>
+    <span class="toast-message">알림 메시지입니다.</span>
+  </div>
+
+  <!-- Back to Top Button -->
+  <button id="back-to-top" class="back-to-top" aria-label="맨 위로 가기">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <script src="./app.js"></script>
+</body>
+</html>
