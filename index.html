@@ -172,7 +172,10 @@
             <span class="admin-stat-chip text-success">승인 <strong id="admin-stat-approved">0</strong>건</span>
             <span class="admin-stat-chip text-danger">반려 <strong id="admin-stat-rejected">0</strong>건</span>
           </div>
-          <button type="button" class="btn btn-secondary" id="btn-admin-refresh"><i class="fa-solid fa-rotate"></i> 새로고침</button>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button type="button" class="btn btn-secondary" id="btn-admin-refresh"><i class="fa-solid fa-rotate"></i> 새로고침</button>
+            <button type="button" class="btn btn-secondary" id="btn-admin-logout" style="background: rgba(244, 63, 94, 0.1); color: var(--accent); border-color: rgba(244, 63, 94, 0.2);"><i class="fa-solid fa-right-from-bracket"></i> 로그아웃</button>
+          </div>
         </div>
 
         <div class="admin-table-wrapper">
@@ -454,6 +457,44 @@
             <button type="button" class="btn btn-primary" id="btn-view-status">나의 신청 현황 확인</button>
           </div>
         </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Admin Login Modal -->
+  <div class="modal-overlay" id="admin-login-modal">
+    <div class="modal-content glass-card admin-login-content" style="max-width: 420px; padding: 36px 30px;">
+      <button class="modal-close" id="admin-login-close" aria-label="모달 닫기">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="login-header">
+        <div class="login-shield-icon">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <h3 class="login-title">관리자 인증</h3>
+        <p class="login-subtitle">캠프 신청 접수 관리를 위해 로그인해 주세요.</p>
+      </div>
+      <form id="admin-login-form" autocomplete="off">
+        <div class="form-group">
+          <label for="login-id" class="login-label">관리자 ID</label>
+          <div class="login-input-wrapper">
+            <i class="fa-regular fa-user login-input-icon"></i>
+            <input type="text" id="login-id" placeholder="관리자 ID" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-pw" class="login-label">비밀번호</label>
+          <div class="login-input-wrapper">
+            <i class="fa-solid fa-lock login-input-icon"></i>
+            <input type="password" id="login-pw" placeholder="비밀번호" required>
+          </div>
+        </div>
+        <div id="login-error-msg" class="login-error-msg" style="display: none;">
+          <i class="fa-solid fa-circle-exclamation"></i> ID 또는 비밀번호가 올바르지 않습니다.
+        </div>
+        <button type="submit" class="btn btn-primary btn-login-submit">
+          로그인 <i class="fa-solid fa-right-to-bracket"></i>
+        </button>
       </form>
     </div>
   </div>

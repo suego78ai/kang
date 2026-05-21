@@ -40,6 +40,24 @@ function writeDb(data) {
   }
 }
 
+// Admin Credentials & Auth Config
+const ADMIN_ID = "dsadmin";
+const ADMIN_PW = "ds2026!";
+const ADMIN_TOKEN = "dsadmin-session-token-2026";
+
+// Auth Middleware
+function adminAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "인증 토큰이 누락되었습니다." });
+  }
+  const token = authHeader.substring(7); // Remove "Bearer "
+  if (token !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: "유효하지 않은 관리자 인증 토큰입니다." });
+  }
+  next();
+}
+
 // API Endpoints
 
 // 1. Health Check & Mode Verification
@@ -47,12 +65,21 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "실시간 데이터베이스 서버가 정상 구동 중입니다." });
 });
 
+// Admin Login Endpoint
+app.post("/api/admin/login", (req, res) => {
+  const { id, password } = req.body;
+  if (id === ADMIN_ID && password === ADMIN_PW) {
+    return res.json({ success: true, token: ADMIN_TOKEN });
+  }
+  res.status(401).json({ success: false, error: "ID 또는 비밀번호가 올바르지 않습니다." });
+});
+
 // 2. Get Applications (Search or List All)
 app.get("/api/applications", (req, res) => {
   const { studentName, guardianPhone } = req.query;
   const db = readDb();
 
-  // If specific search parameters are provided, perform lookup
+  // If specific search parameters are provided, perform lookup (Public)
   if (studentName && guardianPhone) {
     // Standardize phone format (remove whitespace, compare exactly)
     const cleanPhone = guardianPhone.trim();
@@ -65,7 +92,12 @@ app.get("/api/applications", (req, res) => {
     return res.json(matched);
   }
 
-  // Otherwise, return all applications (for Administrator view)
+  // Otherwise, return all applications (Requires Admin Authentication)
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader.substring(7) !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: "권한이 없습니다. 관리자 로그인이 필요합니다." });
+  }
+
   res.json(db);
 });
 
@@ -113,7 +145,7 @@ app.post("/api/applications", (req, res) => {
 });
 
 // 4. Update Application Status (Approve/Reject)
-app.patch("/api/applications/:id/status", (req, res) => {
+app.patch("/api/applications/:id/status", adminAuth, (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 

@@ -95,7 +95,9 @@ let state = {
   searchQuery: "",
   theme: "dark", // 'dark' or 'light'
   applications: [], // localStorage 데이터
-  currentApplyCourse: null // 신청 모달을 띄웠을 때 선택한 코스 정보
+  currentApplyCourse: null, // 신청 모달을 띄웠을 때 선택한 코스 정보
+  isAdminAuthenticated: sessionStorage.getItem("digitalsaessak-admin-auth") === "true",
+  adminToken: sessionStorage.getItem("digitalsaessak-admin-token") || ""
 };
 
 // ============================================================================
@@ -184,6 +186,15 @@ const DOM = {
   catalogSection: document.getElementById("catalog-section"),
   statusSection: document.getElementById("status-section"),
   
+  // Admin Login Modal Elements
+  adminLoginModal: document.getElementById("admin-login-modal"),
+  adminLoginClose: document.getElementById("admin-login-close"),
+  adminLoginForm: document.getElementById("admin-login-form"),
+  loginId: document.getElementById("login-id"),
+  loginPw: document.getElementById("login-pw"),
+  loginErrorMsg: document.getElementById("login-error-msg"),
+  btnAdminLogout: document.getElementById("btn-admin-logout"),
+  
   // Toast
   toast: document.getElementById("toast"),
   toastMessage: document.querySelector(".toast-message")
@@ -269,8 +280,28 @@ const APIService = {
     }
   },
 
+  async login(id, password) {
+    const res = await fetch(`${API_URL}/admin/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ id, password })
+    });
+    if (!res.ok) {
+      const err = new Error("ID 또는 비밀번호가 올바르지 않습니다.");
+      err.status = res.status;
+      throw err;
+    }
+    return await res.json();
+  },
+
   async getAllApplications() {
-    const res = await fetch(`${API_URL}/applications`);
+    const headers = {};
+    if (state.adminToken) {
+      headers["Authorization"] = `Bearer ${state.adminToken}`;
+    }
+    const res = await fetch(`${API_URL}/applications`, { headers });
     if (!res.ok) throw new Error("Failed to fetch applications");
     return await res.json();
   },
@@ -306,11 +337,15 @@ const APIService = {
   },
 
   async updateApplicationStatus(id, status) {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    if (state.adminToken) {
+      headers["Authorization"] = `Bearer ${state.adminToken}`;
+    }
     const res = await fetch(`${API_URL}/applications/${id}/status`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers,
       body: JSON.stringify({ status })
     });
     if (!res.ok) throw new Error("Failed to update status");
@@ -318,8 +353,13 @@ const APIService = {
   },
 
   async deleteApplication(id) {
+    const headers = {};
+    if (state.adminToken) {
+      headers["Authorization"] = `Bearer ${state.adminToken}`;
+    }
     const res = await fetch(`${API_URL}/applications/${id}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers
     });
     if (!res.ok) throw new Error("Failed to delete application");
     return await res.json();
@@ -1165,6 +1205,94 @@ function setupEventListeners() {
   if (DOM.btnAdminRefresh) {
     DOM.btnAdminRefresh.addEventListener("click", loadAdminDashboard);
   }
+
+  // 관리자 로그아웃 버튼
+  if (DOM.btnAdminLogout) {
+    DOM.btnAdminLogout.addEventListener("click", handleAdminLogout);
+  }
+
+  // 관리자 로그인 모달 관련 리스너
+  if (DOM.adminLoginClose) {
+    DOM.adminLoginClose.addEventListener("click", closeAdminLoginModal);
+  }
+  if (DOM.adminLoginForm) {
+    DOM.adminLoginForm.addEventListener("submit", handleAdminLogin);
+  }
+  if (DOM.adminLoginModal) {
+    DOM.adminLoginModal.addEventListener("click", (e) => {
+      if (e.target === DOM.adminLoginModal) closeAdminLoginModal();
+    });
+  }
+}
+
+// --------------------------------------------------------------------------
+// Admin Auth Helpers
+// --------------------------------------------------------------------------
+function openAdminLoginModal() {
+  DOM.loginId.value = "";
+  DOM.loginPw.value = "";
+  DOM.loginErrorMsg.style.display = "none";
+  DOM.adminLoginModal.classList.add("active");
+  setTimeout(() => DOM.loginId.focus(), 100);
+}
+
+function closeAdminLoginModal() {
+  DOM.adminLoginModal.classList.remove("active");
+}
+
+async function handleAdminLogin(e) {
+  e.preventDefault();
+  const id = DOM.loginId.value.trim();
+  const password = DOM.loginPw.value.trim();
+  DOM.loginErrorMsg.style.display = "none";
+
+  if (isOnline) {
+    try {
+      const data = await APIService.login(id, password);
+      if (data && data.success) {
+        state.isAdminAuthenticated = true;
+        state.adminToken = data.token;
+        sessionStorage.setItem("digitalsaessak-admin-auth", "true");
+        sessionStorage.setItem("digitalsaessak-admin-token", data.token);
+        closeAdminLoginModal();
+        showToast("🔓 관리자 인증에 성공했습니다.");
+        switchTab("admin");
+        window.scrollTo({ top: DOM.adminSection.offsetTop - 80, behavior: 'smooth' });
+      }
+    } catch (err) {
+      DOM.loginErrorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ID 또는 비밀번호가 올바르지 않습니다.';
+      DOM.loginErrorMsg.style.display = "flex";
+      DOM.loginPw.value = "";
+      DOM.loginPw.focus();
+    }
+  } else {
+    // 오프라인 모드일 때 로컬 체크
+    if (id === "dsadmin" && password === "ds2026!") {
+      state.isAdminAuthenticated = true;
+      state.adminToken = "dsadmin-session-token-2026";
+      sessionStorage.setItem("digitalsaessak-admin-auth", "true");
+      sessionStorage.setItem("digitalsaessak-admin-token", state.adminToken);
+      closeAdminLoginModal();
+      showToast("🔓 로컬 모드 관리자 인증에 성공했습니다.");
+      switchTab("admin");
+      window.scrollTo({ top: DOM.adminSection.offsetTop - 80, behavior: 'smooth' });
+    } else {
+      DOM.loginErrorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ID 또는 비밀번호가 올바르지 않습니다.';
+      DOM.loginErrorMsg.style.display = "flex";
+      DOM.loginPw.value = "";
+      DOM.loginPw.focus();
+    }
+  }
+}
+
+function handleAdminLogout() {
+  state.isAdminAuthenticated = false;
+  state.adminToken = "";
+  sessionStorage.removeItem("digitalsaessak-admin-auth");
+  sessionStorage.removeItem("digitalsaessak-admin-token");
+  showToast("🔒 성공적으로 로그아웃되었습니다.");
+  switchTab("catalog");
+  window.scrollTo({ top: DOM.catalogSection.offsetTop - 80, behavior: 'smooth' });
 }
 
 function resetSearchAndFilters() {
@@ -1203,6 +1331,10 @@ function showToast(message) {
 // ============================================================================
 function switchTab(targetTab) {
   if (targetTab === 'admin') {
+    if (!state.isAdminAuthenticated) {
+      openAdminLoginModal();
+      return;
+    }
     DOM.catalogSection.style.display = 'none';
     DOM.statusSection.style.display = 'none';
     DOM.adminSection.style.display = 'block';
