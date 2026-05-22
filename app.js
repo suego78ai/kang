@@ -1,7 +1,7 @@
 // ============================================================================
 // 1. Course Data Catalog (디지털새싹 SW·AI 교육캠프 데이터)
 // ============================================================================
-const COURSES = [
+const DEFAULT_COURSES = [
   {
     id: "course-dev-01",
     category: "elementary",
@@ -86,6 +86,8 @@ const COURSES = [
     ]
   }
 ];
+
+let COURSES = [...DEFAULT_COURSES];
 
 // ============================================================================
 // 2. Application State Management
@@ -197,7 +199,15 @@ const DOM = {
   
   // Toast
   toast: document.getElementById("toast"),
-  toastMessage: document.querySelector(".toast-message")
+  toastMessage: document.querySelector(".toast-message"),
+
+  // Admin Course Management Elements
+  excelDropZone: document.getElementById("excel-drop-zone"),
+  excelFileInput: document.getElementById("excel-file-input"),
+  btnDownloadSample: document.getElementById("btn-download-sample"),
+  btnResetCourses: document.getElementById("btn-reset-courses"),
+  adminCourseTotal: document.getElementById("admin-course-total"),
+  adminCoursesTableBody: document.getElementById("admin-courses-table-body")
 };
 
 // ============================================================================
@@ -209,10 +219,11 @@ let isOnline = false;
 document.addEventListener("DOMContentLoaded", async () => {
   initTheme();
   loadApplications();
-  renderCourses();
   setupEventListeners();
   updateStatusDashboard();
   await checkConnection();
+  await initCourses();
+  renderCourses();
 });
 
 // 테마 로드 및 설정
@@ -363,6 +374,41 @@ const APIService = {
     });
     if (!res.ok) throw new Error("Failed to delete application");
     return await res.json();
+  },
+
+  async getCourses() {
+    const res = await fetch(`${API_URL}/courses`);
+    if (!res.ok) throw new Error("Failed to fetch courses");
+    return await res.json();
+  },
+
+  async saveCourses(coursesArray) {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    if (state.adminToken) {
+      headers["Authorization"] = `Bearer ${state.adminToken}`;
+    }
+    const res = await fetch(`${API_URL}/courses`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ courses: coursesArray })
+    });
+    if (!res.ok) throw new Error("Failed to save courses");
+    return await res.json();
+  },
+
+  async resetCourses() {
+    const headers = {};
+    if (state.adminToken) {
+      headers["Authorization"] = `Bearer ${state.adminToken}`;
+    }
+    const res = await fetch(`${API_URL}/courses/reset`, {
+      method: "POST",
+      headers
+    });
+    if (!res.ok) throw new Error("Failed to reset courses");
+    return await res.json();
   }
 };
 
@@ -425,6 +471,265 @@ function updateBadgeCount() {
   } else {
     DOM.appBadge.style.display = "none";
   }
+}
+
+// --------------------------------------------------------------------------
+// 4.6 Excel Import & Course Management Logic
+// --------------------------------------------------------------------------
+async function initCourses() {
+  if (isOnline) {
+    try {
+      const serverCourses = await APIService.getCourses();
+      if (serverCourses && serverCourses.length > 0) {
+        COURSES = serverCourses;
+      } else {
+        COURSES = [...DEFAULT_COURSES];
+      }
+    } catch (e) {
+      console.error("Failed to load courses from server, trying local storage", e);
+      loadCoursesFromLocalStorage();
+    }
+  } else {
+    loadCoursesFromLocalStorage();
+  }
+}
+
+function loadCoursesFromLocalStorage() {
+  const savedCourses = localStorage.getItem("digitalsaessak-courses");
+  if (savedCourses) {
+    try {
+      COURSES = JSON.parse(savedCourses);
+    } catch (e) {
+      COURSES = [...DEFAULT_COURSES];
+    }
+  } else {
+    COURSES = [...DEFAULT_COURSES];
+  }
+}
+
+function renderAdminCourses() {
+  if (!DOM.adminCoursesTableBody) return;
+  
+  DOM.adminCourseTotal.textContent = COURSES.length;
+  
+  if (COURSES.length === 0) {
+    DOM.adminCoursesTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="loading-td">
+          <i class="fa-solid fa-circle-info"></i> 등록된 교육과정이 없습니다. 엑셀을 통해 등록해 주세요.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  DOM.adminCoursesTableBody.innerHTML = COURSES.map(course => {
+    const categoryName = getCategoryName(course.category);
+    const location = course.location || "장소 미지정";
+    const assistant = course.assistantInstructor || "-";
+    const instructorStr = `${course.instructor} (${assistant})`;
+    const titleStr = `
+      <div class="course-title-sub" style="font-weight: 600;">${course.title}</div>
+      <div class="course-id-sub" style="font-size: 0.8rem; color: var(--text-secondary);">${course.duration}</div>
+    `;
+    
+    // Truncate longDesc for summary
+    const summary = course.longDesc && course.longDesc.length > 50 
+      ? course.longDesc.substring(0, 50) + "..." 
+      : (course.longDesc || "-");
+      
+    return `
+      <tr>
+        <td><span class="course-cat-tag" style="position: static; transform: none; display: inline-block;">${categoryName}</span></td>
+        <td>${titleStr}</td>
+        <td>${instructorStr}</td>
+        <td>${location}</td>
+        <td>${course.capacity || "-"}</td>
+        <td>
+          <span style="font-size: 0.85rem; color: var(--text-secondary);" title="${course.longDesc || ''}">
+            ${summary}
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function downloadSampleExcel() {
+  try {
+    const sampleData = [
+      {
+        "날짜": "2026.06.01 ~ 2026.06.28",
+        "교육과정": "초등 과정",
+        "과정이름": "블록코딩과 AI 펭귄 비서 만들기",
+        "장소": "서울창의캠퍼스 102호",
+        "주강사": "김민수 강사",
+        "보조강사": "이지은 강사",
+        "신청인원": "20",
+        "결과보고": "초등학생들을 위한 맞춤형 SW·AI 교육 과정입니다. 블록 코딩의 기본 개념을 배우며 나만의 인공지능 펭귄 비서를 만듭니다."
+      },
+      {
+        "날짜": "2026.07.05 ~ 2026.07.26",
+        "교육과정": "중등 과정",
+        "과정이름": "파이썬 아두이노 스마트홈 자율제어",
+        "장소": "IT비전센터 4층 대강당",
+        "주강사": "이진우 교수",
+        "보조강사": "박영희 강사",
+        "신청인원": "15",
+        "결과보고": "파이썬 프로그래밍과 아두이노 키트를 활용해 스마트홈을 구현하고 자율 제어해보는 중등 심화 캠프입니다."
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "교육과정 등록 양식");
+
+    // 컬럼 너비 지정
+    worksheet['!cols'] = [
+      { wch: 25 }, // 날짜
+      { wch: 15 }, // 교육과정
+      { wch: 35 }, // 과정이름
+      { wch: 25 }, // 장소
+      { wch: 15 }, // 주강사
+      { wch: 15 }, // 보조강사
+      { wch: 10 }, // 신청인원
+      { wch: 50 }  // 결과보고
+    ];
+
+    XLSX.writeFile(workbook, "디지털새싹_교육과정_등록양식.xlsx");
+    showToast("🟢 샘플 엑셀 파일이 다운로드되었습니다.");
+  } catch (err) {
+    console.error("샘플 다운로드 오류:", err);
+    showToast("⚠️ 샘플 다운로드 중 오류가 발생했습니다.");
+  }
+}
+
+function parseExcelFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      
+      if (jsonData.length === 0) {
+        showToast("⚠️ 엑셀 파일에 데이터가 없습니다.");
+        return;
+      }
+      
+      // 필수 열 체크
+      const firstRow = jsonData[0];
+      const requiredColumns = ['날짜', '교육과정', '과정이름', '장소', '주강사', '보조강사', '신청인원', '결과보고'];
+      const missing = requiredColumns.filter(col => !(col in firstRow));
+      
+      if (missing.length > 0) {
+        showToast(`⚠️ 필수 열이 누락되었습니다: ${missing.join(', ')}`);
+        return;
+      }
+      
+      const newCourses = jsonData.map((row, index) => {
+        const catStr = String(row['교육과정'] || '');
+        let category = 'elementary';
+        if (catStr.includes('중등')) category = 'middle';
+        else if (catStr.includes('고등')) category = 'high';
+        else if (catStr.includes('가족') || catStr.includes('부모')) category = 'family';
+        
+        const title = String(row['과정이름'] || `교육과정 ${index + 1}`);
+        const duration = String(row['날짜'] || '기간 미지정');
+        const location = String(row['장소'] || '장소 미지정');
+        const instructor = String(row['주강사'] || '미지정');
+        const assistantInstructor = String(row['보조강사'] || '미지정');
+        const capacityVal = String(row['신청인원'] || '0');
+        const capacity = capacityVal.includes('명') ? capacityVal : `${capacityVal}명 정원`;
+        const longDesc = String(row['결과보고'] || '');
+        const desc = longDesc.length > 100 ? longDesc.substring(0, 100) + '...' : longDesc;
+        
+        let image = "./assets/dev_course.png";
+        if (category === 'middle') image = "./assets/ai_course.png";
+        else if (category === 'high') image = "./assets/pm_course.png";
+        else if (category === 'family') image = "./assets/design_course.png";
+        
+        const id = `course-excel-${Date.now()}-${index}`;
+        
+        // 커리큘럼 자동 생성
+        const curriculum = [
+          { title: "1주차: 교육과정 개요 및 기초", desc: `${title}의 핵심 개념 파악 및 기본 실습` },
+          { title: "2주차: 기술 분석 및 실습", desc: `${location}에서 진행되는 센서/도구 실용 실습` },
+          { title: "3주차: 심화 문제 해결 프로젝트", desc: `주강사 ${instructor} 및 보조강사 ${assistantInstructor}와 함께하는 심화 미션` },
+          { title: "4주차: 최종 프로젝트 시연 및 결과보고", desc: `수행된 결과보고를 기반으로 결과물 공유 및 이수식` }
+        ];
+        
+        return {
+          id,
+          category,
+          title,
+          desc,
+          longDesc,
+          duration,
+          schedule: duration,
+          location,
+          instructor,
+          assistantInstructor,
+          instructorBio: `주강사: ${instructor} (보조강사: ${assistantInstructor})`,
+          price: "전액 무료 (교육부·창의재단 지원)",
+          capacity,
+          target: category === 'elementary' ? '초등학생(3~6학년 권장)' :
+                  category === 'middle' ? '중학생' :
+                  category === 'high' ? '고등학생' : '초·중·고교생 및 학부모(가족)',
+          image,
+          curriculum
+        };
+      });
+      
+      if (isOnline) {
+        try {
+          await APIService.saveCourses(newCourses);
+          showToast("🎉 교육과정이 서버에 등록되었습니다.");
+        } catch (serverErr) {
+          console.error("Failed to save to server, saving locally", serverErr);
+          localStorage.setItem("digitalsaessak-courses", JSON.stringify(newCourses));
+          showToast("⚠️ 서버 저장에 실패하여 로컬 저장소에 저장했습니다.");
+        }
+      } else {
+        localStorage.setItem("digitalsaessak-courses", JSON.stringify(newCourses));
+        showToast("🎉 교육과정이 로컬 저장소에 등록되었습니다 (오프라인).");
+      }
+      
+      COURSES = newCourses;
+      renderCourses();
+      renderAdminCourses();
+      
+    } catch (err) {
+      console.error(err);
+      showToast("⚠️ 엑셀 파일 처리 중 오류가 발생했습니다.");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function resetCoursesAndRerender() {
+  if (!confirm("정말로 교육과정을 기본값으로 초기화하시겠습니까? 업로드된 데이터는 모두 삭제됩니다.")) {
+    return;
+  }
+  
+  if (isOnline) {
+    try {
+      await APIService.resetCourses();
+      showToast("🔄 교육과정이 기본값으로 초기화되었습니다 (서버).");
+    } catch (err) {
+      console.error("Failed to reset courses on server", err);
+      showToast("⚠️ 서버에서 초기화하지 못했습니다. 로컬을 초기화합니다.");
+    }
+  } else {
+    showToast("🔄 교육과정이 기본값으로 초기화되었습니다 (로컬).");
+  }
+  
+  localStorage.removeItem("digitalsaessak-courses");
+  COURSES = [...DEFAULT_COURSES];
+  renderCourses();
+  renderAdminCourses();
 }
 
 // ============================================================================
@@ -1223,6 +1528,43 @@ function setupEventListeners() {
       if (e.target === DOM.adminLoginModal) closeAdminLoginModal();
     });
   }
+
+  // 엑셀 업로드 및 교육과정 관리 관련 리스너
+  if (DOM.btnDownloadSample) {
+    DOM.btnDownloadSample.addEventListener("click", downloadSampleExcel);
+  }
+  if (DOM.btnResetCourses) {
+    DOM.btnResetCourses.addEventListener("click", resetCoursesAndRerender);
+  }
+  if (DOM.excelDropZone) {
+    DOM.excelDropZone.addEventListener("click", () => {
+      DOM.excelFileInput.click();
+    });
+    
+    DOM.excelDropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      DOM.excelDropZone.classList.add("dragover");
+    });
+    
+    DOM.excelDropZone.addEventListener("dragleave", () => {
+      DOM.excelDropZone.classList.remove("dragover");
+    });
+    
+    DOM.excelDropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      DOM.excelDropZone.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        parseExcelFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+  if (DOM.excelFileInput) {
+    DOM.excelFileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        parseExcelFile(e.target.files[0]);
+      }
+    });
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -1343,6 +1685,7 @@ function switchTab(targetTab) {
     DOM.navLinkAdmin.classList.add('active');
     
     loadAdminDashboard();
+    renderAdminCourses();
   } else {
     DOM.catalogSection.style.display = 'block';
     DOM.statusSection.style.display = 'block';

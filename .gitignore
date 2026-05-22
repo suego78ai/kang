@@ -21,3 +21,4 @@ node_modules/
 
 # Local Database Files
 db.json
+courses.json

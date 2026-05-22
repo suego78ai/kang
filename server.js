@@ -6,13 +6,37 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, "db.json");
+const COURSES_FILE = path.join(__dirname, "courses.json");
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Serve static files in production if needed (optional)
 app.use(express.static(__dirname));
+
+// Helper: Read Courses DB
+function readCoursesDb() {
+  try {
+    if (!fs.existsSync(COURSES_FILE)) {
+      return [];
+    }
+    const data = fs.readFileSync(COURSES_FILE, "utf8");
+    return JSON.parse(data || "[]");
+  } catch (err) {
+    console.error("교육과정 데이터베이스 파일 읽기 에러:", err);
+    return [];
+  }
+}
+
+// Helper: Write Courses DB
+function writeCoursesDb(data) {
+  try {
+    fs.writeFileSync(COURSES_FILE, JSON.stringify(data, null, 2), "utf8");
+    return true;
+  } catch (err) {
+    console.error("교육과정 데이터베이스 파일 쓰기 에러:", err);
+    return false;
+  }
+}
 
 // Helper: Read DB
 function readDb() {
@@ -188,6 +212,36 @@ app.delete("/api/applications/:id", (req, res) => {
     res.json({ message: "신청이 성공적으로 취소되었습니다.", id });
   } else {
     res.status(500).json({ error: "신청 취소 처리에 실패했습니다." });
+  }
+});
+
+// 6. Get Dynamic Courses (Public)
+app.get("/api/courses", (req, res) => {
+  const courses = readCoursesDb();
+  res.json(courses);
+});
+
+// 7. Save Imported Courses (Requires Admin Auth)
+app.post("/api/courses", adminAuth, (req, res) => {
+  const { courses } = req.body;
+  if (!courses || !Array.isArray(courses)) {
+    return res.status(400).json({ error: "올바르지 않은 교육과정 데이터 형식입니다." });
+  }
+  const success = writeCoursesDb(courses);
+  if (success) {
+    res.json({ success: true, message: "교육과정이 성공적으로 등록되었습니다." });
+  } else {
+    res.status(500).json({ error: "교육과정 등록 저장에 실패했습니다." });
+  }
+});
+
+// 8. Reset Dynamic Courses (Requires Admin Auth)
+app.post("/api/courses/reset", adminAuth, (req, res) => {
+  const success = writeCoursesDb([]);
+  if (success) {
+    res.json({ success: true, message: "교육과정이 기본값으로 초기화되었습니다." });
+  } else {
+    res.status(500).json({ error: "교육과정 초기화에 실패했습니다." });
   }
 });
 
