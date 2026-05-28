@@ -13,10 +13,10 @@ const INSTRUCTOR_DOCS_FILE = path.join(__dirname, "instructor_docs.json");
 
 // Default Demo Instructor Documents
 const DEFAULT_INSTRUCTOR_DOCS = [
-  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
-  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
-  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
-  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", phone: "010-1111-2222", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", phone: "010-3333-4444", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", phone: "010-5555-6666", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", phone: "010-7777-8888", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
 ];
 
 // Helper: Read Instructor Docs DB
@@ -362,47 +362,48 @@ app.post("/api/instructor-docs/upload", (req, res) => {
       return res.status(500).json({ error: "파일 업로드 처리 중 에러가 발생했습니다." });
     }
     
-    const { instructorName, email, className } = req.body;
-    if (!instructorName || !className) {
-      return res.status(400).json({ error: "필수 정보(강사명, 분반 프로그램명)가 누락되었습니다." });
-    }
-    
-    const db = readInstructorDocsDb();
-    const newId = db.length > 0 ? Math.max(...db.map(i => i.id)) + 1 : 1;
-    
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    
-    const folderName = `${instructorName.trim()}-${dateStr}`;
-    const folderPath = `/uploads/${folderName}`;
-    
-    const getDocStatus = (fieldName) => {
-      if (req.files && req.files[fieldName] && req.files[fieldName][0]) {
-        return req.files[fieldName][0].filename; // 파일명을 저장
-      }
-      return "❌ 미제출";
-    };
-    
-    const newDocRecord = {
-      id: newId,
-      class: className,
-      name: instructorName,
-      email: email || "",
-      folder: folderPath, // 로컬 업로드 폴더 주소 저장
-      doc1: getDocStatus('docFile1'),
-      doc2: getDocStatus('docFile2'),
-      doc3: getDocStatus('docFile3'),
-      doc4: getDocStatus('docFile4'),
-      doc5: getDocStatus('docFile5'),
-      date: dateStr, // 제출 날짜
-      status: "검토중" // 관리자 검토를 위한 기본 상태 설정
-    };
-    
-    db.push(newDocRecord);
-    writeInstructorDocsDb(db);
+     const { instructorName, email, className, phone } = req.body;
+     if (!instructorName || !className) {
+       return res.status(400).json({ error: "필수 정보(강사명, 분반 프로그램명)가 누락되었습니다." });
+     }
+     
+     const db = readInstructorDocsDb();
+     const newId = db.length > 0 ? Math.max(...db.map(i => i.id)) + 1 : 1;
+     
+     const d = new Date();
+     const year = d.getFullYear();
+     const month = String(d.getMonth() + 1).padStart(2, '0');
+     const day = String(d.getDate()).padStart(2, '0');
+     const dateStr = `${year}-${month}-${day}`;
+     
+     const folderName = `${instructorName.trim()}-${dateStr}`;
+     const folderPath = `/uploads/${folderName}`;
+     
+     const getDocStatus = (fieldName) => {
+       if (req.files && req.files[fieldName] && req.files[fieldName][0]) {
+         return req.files[fieldName][0].filename; // 파일명을 저장
+       }
+       return "❌ 미제출";
+     };
+     
+     const newDocRecord = {
+       id: newId,
+       class: className,
+       name: instructorName,
+       email: email || "",
+       phone: phone || "",
+       folder: folderPath, // 로컬 업로드 폴더 주소 저장
+       doc1: getDocStatus('docFile1'),
+       doc2: getDocStatus('docFile2'),
+       doc3: getDocStatus('docFile3'),
+       doc4: getDocStatus('docFile4'),
+       doc5: getDocStatus('docFile5'),
+       date: dateStr, // 제출 날짜
+       status: "검토중" // 관리자 검토를 위한 기본 상태 설정
+     };
+     
+     db.push(newDocRecord);
+     writeInstructorDocsDb(db);
     
     res.status(201).json({ success: true, message: "서류 제출이 완료되었습니다.", record: newDocRecord });
   });

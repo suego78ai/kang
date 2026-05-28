@@ -552,10 +552,10 @@ function updateBadgeCount() {
 // ============================================================================
 
 const DEFAULT_INSTRUCTOR_DOCS_DEMO = [
-  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
-  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
-  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
-  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", phone: "010-1111-2222", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", phone: "010-3333-4444", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", phone: "010-5555-6666", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", phone: "010-7777-8888", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
 ];
 
 window.switchAdminTab = function(tabName) {
@@ -1712,6 +1712,7 @@ async function handleFormSubmit(e) {
     class: className,
     name: instructorName,
     email: email,
+    phone: phone,
     folder: "",
     doc1: DOM.docFile1.files[0] ? DOM.docFile1.files[0].name : "❌ 미제출",
     doc2: DOM.docFile2.files[0] ? DOM.docFile2.files[0].name : "❌ 미제출",
@@ -1727,6 +1728,7 @@ async function handleFormSubmit(e) {
       formData.append("instructorName", instructorName);
       formData.append("className", className);
       formData.append("email", email);
+      formData.append("phone", phone);
       
       if (DOM.docFile1.files[0]) formData.append("docFile1", DOM.docFile1.files[0]);
       if (DOM.docFile2.files[0]) formData.append("docFile2", DOM.docFile2.files[0]);
@@ -2167,7 +2169,7 @@ function setupEventListeners() {
   if (btnLookup) {
     btnLookup.addEventListener("click", handleLookup);
   }
-  const lookupPhone = document.getElementById("lookup-guardian-phone");
+  const lookupPhone = document.getElementById("lookup-doc-id");
   if (lookupPhone) {
     lookupPhone.addEventListener("input", (e) => {
       e.target.value = formatPhoneNumber(e.target.value);
@@ -2258,17 +2260,17 @@ function setupEventListeners() {
 async function handleLookup() {
   const nameInput = document.getElementById("lookup-student-name");
   const emailInput = document.getElementById("lookup-guardian-phone");
-  const docIdInput = document.getElementById("lookup-doc-id");
+  const docIdInput = document.getElementById("lookup-doc-id"); // 이 필드는 이제 휴대폰 번호를 담고 있습니다.
   const resultsInfo = document.getElementById("lookup-results-info");
   
   if (!nameInput || !emailInput || !docIdInput || !resultsInfo) return;
   
   const instructorName = nameInput.value.trim();
   const instructorEmail = emailInput.value.trim();
-  let rawDocId = docIdInput.value.trim();
+  let rawPhone = docIdInput.value.trim();
   
-  if (!instructorName || !instructorEmail || !rawDocId) {
-    showToast("⚠️ 강사 이름, 이메일 주소, 제출번호를 모두 입력해주세요.");
+  if (!instructorName || !instructorEmail || !rawPhone) {
+    showToast("⚠️ 강사 이름, 이메일 주소, 휴대폰 번호를 모두 입력해주세요.");
     return;
   }
   
@@ -2278,14 +2280,9 @@ async function handleLookup() {
     return;
   }
   
-  // 파싱: DOC-123456 -> 123456
-  let cleanDocId = rawDocId;
-  if (cleanDocId.toUpperCase().startsWith("DOC-")) {
-    cleanDocId = cleanDocId.substring(4);
-  }
-  const targetDocId = Number(cleanDocId);
-  if (isNaN(targetDocId)) {
-    showToast("⚠️ 제출번호 형식이 올바르지 않습니다. (예: DOC-123456)");
+  const phoneRegex = /^01[016789]-?\d{3,4}-?\d{4}$/;
+  if (!phoneRegex.test(rawPhone)) {
+    showToast("⚠️ 올바른 휴대폰 번호 형식(예: 010-1234-5678)으로 입력해주세요.");
     return;
   }
   
@@ -2294,9 +2291,11 @@ async function handleLookup() {
   resultsInfo.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 데이터베이스 검색 중...`;
   
   const filterRecord = (d) => {
+    const cleanDbPhone = (d.phone || "").replace(/-/g, "");
+    const cleanSearchPhone = rawPhone.replace(/-/g, "");
     return d.name === instructorName && 
            d.email === instructorEmail && 
-           Number(d.id) === targetDocId;
+           cleanDbPhone === cleanSearchPhone;
   };
   
   let matched = [];
