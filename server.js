@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const multer = require("multer");
+const AdmZip = require("adm-zip");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +49,48 @@ function writeInstructorDocsDb(data) {
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
+
+// Ensure uploads folder exists and expose it statically
+const UPLOADS_DIR = path.join(__dirname, "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+app.use("/uploads", express.static(UPLOADS_DIR));
+
+// Multer Storage Setup for Instructor Documents
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const instructorName = req.body.instructorName || "unknown_instructor";
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    // Naming folder: "강사이름-제출날짜"
+    const folderName = `${instructorName.trim()}-${dateStr}`;
+    const uploadPath = path.join(UPLOADS_DIR, folderName);
+    
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const base = path.basename(file.originalname, ext);
+    // Standardize file naming inside the folder
+    cb(null, `${file.fieldname}_${base}${ext}`);
+  }
+});
+
+const upload = multer({ storage }).fields([
+  { name: 'docFile1', maxCount: 1 },
+  { name: 'docFile2', maxCount: 1 },
+  { name: 'docFile3', maxCount: 1 },
+  { name: 'docFile4', maxCount: 1 },
+  { name: 'docFile5', maxCount: 1 }
+]);
 
 // Helper: Read Courses DB
 function readCoursesDb() {
@@ -307,6 +351,97 @@ app.post("/api/instructor-docs/reset", adminAuth, (req, res) => {
     res.json({ success: true, message: "강사 서류 현황이 기본 데모값으로 복구되었습니다.", docs: DEFAULT_INSTRUCTOR_DOCS });
   } else {
     res.status(500).json({ error: "강사 서류 현황 복구에 실패했습니다." });
+  }
+});
+
+// 12. Instructor Documents File Upload (Public - Instructors Submit Docs)
+app.post("/api/instructor-docs/upload", (req, res) => {
+  upload(req, res, (err) => {
+    if (err) {
+      console.error("파일 업로드 에러:", err);
+      return res.status(500).json({ error: "파일 업로드 처리 중 에러가 발생했습니다." });
+    }
+    
+    const { instructorName, email, className } = req.body;
+    if (!instructorName || !className) {
+      return res.status(400).json({ error: "필수 정보(강사명, 분반 프로그램명)가 누락되었습니다." });
+    }
+    
+    const db = readInstructorDocsDb();
+    const newId = db.length > 0 ? Math.max(...db.map(i => i.id)) + 1 : 1;
+    
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    const folderName = `${instructorName.trim()}-${dateStr}`;
+    const folderPath = `/uploads/${folderName}`;
+    
+    const getDocStatus = (fieldName) => {
+      if (req.files && req.files[fieldName] && req.files[fieldName][0]) {
+        return req.files[fieldName][0].filename; // 파일명을 저장
+      }
+      return "❌ 미제출";
+    };
+    
+    const newDocRecord = {
+      id: newId,
+      class: className,
+      name: instructorName,
+      email: email || "",
+      folder: folderPath, // 로컬 업로드 폴더 주소 저장
+      doc1: getDocStatus('docFile1'),
+      doc2: getDocStatus('docFile2'),
+      doc3: getDocStatus('docFile3'),
+      doc4: getDocStatus('docFile4'),
+      doc5: getDocStatus('docFile5'),
+      date: dateStr // 제출 날짜
+    };
+    
+    db.push(newDocRecord);
+    writeInstructorDocsDb(db);
+    
+    res.status(201).json({ success: true, message: "서류 제출이 완료되었습니다.", record: newDocRecord });
+  });
+});
+
+// 13. Download Instructor Documents Folder as ZIP (Requires Admin Auth)
+app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
+  const { id } = req.params;
+  const db = readInstructorDocsDb();
+  const record = db.find(inst => inst.id === parseInt(id));
+  
+  if (!record) {
+    return res.status(404).json({ error: "해당 강사 서류 기록을 찾을 수 없습니다." });
+  }
+  
+  if (!record.folder || record.folder.startsWith("http")) {
+    return res.status(400).json({ error: "실제 서버에 업로드된 로컬 서류만 일괄 다운로드(ZIP)가 가능합니다." });
+  }
+  
+  const folderName = path.basename(record.folder);
+  const targetDir = path.join(UPLOADS_DIR, folderName);
+  
+  if (!fs.existsSync(targetDir)) {
+    return res.status(404).json({ error: "서버 상에 서류 보관 폴더가 존재하지 않습니다." });
+  }
+  
+  try {
+    const zip = new AdmZip();
+    zip.addLocalFolder(targetDir);
+    
+    const zipName = `${folderName}.zip`;
+    const buffer = zip.toBuffer();
+    
+    // Set headers
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename=${encodeURIComponent(zipName)}`);
+    res.send(buffer);
+  } catch (err) {
+    console.error("ZIP 압축 에러:", err);
+    res.status(500).json({ error: "ZIP 파일 압축 생성에 실패했습니다." });
   }
 });
 

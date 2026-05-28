@@ -218,7 +218,15 @@ const DOM = {
   appsScriptCodeBlock: document.getElementById("apps-script-code-block"),
   btnResetInstDemo: document.getElementById("btn-reset-inst-demo"),
   btnExportDocsCSV: document.getElementById("btn-export-docs-csv"),
-  btnAddInstRow: document.getElementById("btn-add-inst-row")
+  btnAddInstRow: document.getElementById("btn-add-inst-row"),
+  
+  // Document File Inputs & Submit docs button
+  docFile1: document.getElementById("doc-file-1"),
+  docFile2: document.getElementById("doc-file-2"),
+  docFile3: document.getElementById("doc-file-3"),
+  docFile4: document.getElementById("doc-file-4"),
+  docFile5: document.getElementById("doc-file-5"),
+  btnHeroSubmitDocs: document.getElementById("btn-hero-submit-docs")
 };
 
 // ============================================================================
@@ -456,6 +464,15 @@ const APIService = {
     });
     if (!res.ok) throw new Error("Failed to reset instructor docs");
     return await res.json();
+  },
+
+  async uploadInstructorDocs(formData) {
+    const res = await fetch(`${API_URL}/instructor-docs/upload`, {
+      method: "POST",
+      body: formData
+    });
+    if (!res.ok) throw new Error("Failed to upload instructor documents");
+    return await res.json();
   }
 };
 
@@ -610,10 +627,51 @@ function renderInstructorDocs() {
   
   DOM.spreadsheetTbody.innerHTML = "";
   
+  // 헬퍼: 셀 및 개별 파일 다운로드 링크 렌더링
+  const renderDocCellHtml = (inst, fieldName, instFieldVal) => {
+    const isFile = instFieldVal && instFieldVal !== "O 완료" && instFieldVal !== "⚡ 검토중" && instFieldVal !== "❌ 미제출";
+    let selectVal = instFieldVal;
+    let fileLinkHtml = "";
+    
+    if (isFile) {
+      selectVal = "O 완료";
+      const fileUrl = `http://localhost:3000${inst.folder}/${instFieldVal}`;
+      const cleanFileName = instFieldVal.substring(instFieldVal.indexOf("_") + 1);
+      fileLinkHtml = `
+        <div style="margin-top: 4px; font-size: 0.7rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">
+          <a href="${fileUrl}" target="_blank" style="color: var(--primary); text-decoration: underline;" title="${cleanFileName} 다운로드">
+            <i class="fa-solid fa-paperclip"></i> ${cleanFileName}
+          </a>
+        </div>
+      `;
+    }
+    
+    return `
+      <select onchange="updateDocCell(${inst.id}, '${fieldName}', this.value)" class="status-select ${getStatusClass(selectVal)}">
+        <option value="O 완료" ${selectVal === 'O 완료' ? 'selected' : ''}>O 완료</option>
+        <option value="⚡ 검토중" ${selectVal === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+        <option value="❌ 미제출" ${selectVal === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+      </select>
+      ${fileLinkHtml}
+    `;
+  };
+  
   state.instructorDocs.forEach((inst, index) => {
     const rowNum = index + 2; 
     const tr = document.createElement("tr");
     
+    const isLocal = inst.folder && !inst.folder.startsWith("http");
+    const folderCellHtml = isLocal ? 
+      `<a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: #fff; background: var(--secondary); border: 1px solid rgba(99, 102, 241, 0.2); padding: 4px 8px; border-radius: 20px; text-decoration: none;" title="제출된 서류 전체 일괄 ZIP 다운로드">
+        <i class="fa-solid fa-file-zipper"></i> ZIP 다운
+       </a>` : 
+      (inst.folder ? 
+        `<a href="${inst.folder}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: var(--primary); background: var(--success-bg); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 8px; border-radius: 20px; text-decoration: none;">
+          <i class="fa-solid fa-folder-open"></i> 구글 드라이브
+         </a>` : 
+        `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">폴더 미개설</span>`
+      );
+      
     tr.innerHTML = `
       <td class="row-indicator" style="text-align: center; font-weight: bold;">${rowNum}</td>
       <td style="text-align: center; font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">${inst.id}</td>
@@ -627,47 +685,22 @@ function renderInstructorDocs() {
         <input type="email" value="${inst.email}" onchange="updateDocCell(${inst.id}, 'email', this.value)">
       </td>
       <td style="text-align: center;">
-        ${inst.folder ? 
-          `<a href="${inst.folder}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: var(--primary); background: var(--success-bg); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 8px; border-radius: 20px; text-decoration: none;">
-            <i class="fa-solid fa-folder-open"></i> 구글 드라이브
-           </a>` : 
-          `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">폴더 미개설</span>`
-        }
+        ${folderCellHtml}
       </td>
       <td>
-        <select onchange="updateDocCell(${inst.id}, 'doc1', this.value)" class="status-select ${getStatusClass(inst.doc1)}">
-          <option value="O 완료" ${inst.doc1 === 'O 완료' ? 'selected' : ''}>O 완료</option>
-          <option value="⚡ 검토중" ${inst.doc1 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
-          <option value="❌ 미제출" ${inst.doc1 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
-        </select>
+        ${renderDocCellHtml(inst, 'doc1', inst.doc1)}
       </td>
       <td>
-        <select onchange="updateDocCell(${inst.id}, 'doc2', this.value)" class="status-select ${getStatusClass(inst.doc2)}">
-          <option value="O 완료" ${inst.doc2 === 'O 완료' ? 'selected' : ''}>O 완료</option>
-          <option value="⚡ 검토중" ${inst.doc2 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
-          <option value="❌ 미제출" ${inst.doc2 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
-        </select>
+        ${renderDocCellHtml(inst, 'doc2', inst.doc2)}
       </td>
       <td>
-        <select onchange="updateDocCell(${inst.id}, 'doc3', this.value)" class="status-select ${getStatusClass(inst.doc3)}">
-          <option value="O 완료" ${inst.doc3 === 'O 완료' ? 'selected' : ''}>O 완료</option>
-          <option value="⚡ 검토중" ${inst.doc3 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
-          <option value="❌ 미제출" ${inst.doc3 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
-        </select>
+        ${renderDocCellHtml(inst, 'doc3', inst.doc3)}
       </td>
       <td>
-        <select onchange="updateDocCell(${inst.id}, 'doc4', this.value)" class="status-select ${getStatusClass(inst.doc4)}">
-          <option value="O 완료" ${inst.doc4 === 'O 완료' ? 'selected' : ''}>O 완료</option>
-          <option value="⚡ 검토중" ${inst.doc4 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
-          <option value="❌ 미제출" ${inst.doc4 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
-        </select>
+        ${renderDocCellHtml(inst, 'doc4', inst.doc4)}
       </td>
       <td>
-        <select onchange="updateDocCell(${inst.id}, 'doc5', this.value)" class="status-select ${getStatusClass(inst.doc5)}">
-          <option value="O 완료" ${inst.doc5 === 'O 완료' ? 'selected' : ''}>O 완료</option>
-          <option value="⚡ 검토중" ${inst.doc5 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
-          <option value="❌ 미제출" ${inst.doc5 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
-        </select>
+        ${renderDocCellHtml(inst, 'doc5', inst.doc5)}
       </td>
       <td style="text-align: center;">
         <button onclick="removeInstructorDocRow(${inst.id})" style="background: none; border: none; color: var(--accent); cursor: pointer; padding: 4px; border-radius: 4px; transition: var(--transition-fast);" title="행 삭제">
@@ -1387,7 +1420,15 @@ function resetForm() {
   const errGroups = DOM.applyForm.querySelectorAll(".form-group.has-error");
   errGroups.forEach(g => g.classList.remove("has-error"));
   
-  DOM.motivationLength.textContent = "0";
+  if (DOM.motivationLength) {
+    DOM.motivationLength.textContent = "0";
+  }
+  
+  // Reset drag-and-drop file zone descriptions
+  document.querySelectorAll(".file-drag-text").forEach(txt => {
+    txt.textContent = "클릭하거나 파일을 드래그하여 업로드하세요.";
+  });
+  
   goToStep(1);
 }
 
@@ -1463,96 +1504,95 @@ function validateField(inputElement, validationFnOrRegex) {
   return isValid;
 }
 
-// Step 1 유효성 검사 (학생 정보)
+// Step 1 유효성 검사 (강사 및 프로그램 정보)
 function validateStep1() {
   let isAllValid = true;
   
-  // 학생 이름: 2글자 이상의 한글 또는 영어
+  // 강사 이름: 2글자 이상의 한글 또는 영어
   const nameRegex = /^[a-zA-Z가-힣\s]{2,15}$/;
   if (!validateField(DOM.studentName, nameRegex)) {
     isAllValid = false;
   }
   
-  // 학교 구분 선택
-  if (!DOM.studentSchoolType.value) {
-    DOM.studentSchoolType.closest(".form-group").classList.add("has-error");
-    isAllValid = false;
-  } else {
-    DOM.studentSchoolType.closest(".form-group").classList.remove("has-error");
-  }
-  
-  // 학교 이름: 2자 이상
-  const schoolVal = DOM.studentSchool.value.trim();
-  if (schoolVal.length < 2) {
-    DOM.studentSchool.closest(".form-group").classList.add("has-error");
-    isAllValid = false;
-  } else {
-    DOM.studentSchool.closest(".form-group").classList.remove("has-error");
-  }
-  
-  // 학년 선택
-  if (!DOM.studentGrade.value) {
-    DOM.studentGrade.closest(".form-group").classList.add("has-error");
-    isAllValid = false;
-  } else {
-    DOM.studentGrade.closest(".form-group").classList.remove("has-error");
-  }
-  
-  return isAllValid;
-}
-
-// Step 2 유효성 검사 (보호자 및 상세 정보)
-function validateStep2() {
-  let isAllValid = true;
-  
-  // 보호자 이름: 2글자 이상의 한글 또는 영어
-  const nameRegex = /^[a-zA-Z가-힣\s]{2,15}$/;
-  if (!validateField(DOM.guardianName, nameRegex)) {
-    isAllValid = false;
-  }
-  
-  // 보호자 전화번호: 010-XXXX-XXXX 형식
+  // 강사 연락처: 010-XXXX-XXXX 형식
   const phoneRegex = /^01[016789]-\d{3,4}-\d{4}$/;
   if (!validateField(DOM.guardianPhone, phoneRegex)) {
     isAllValid = false;
   }
   
-  // 보호자 이메일: 표준 규격 이메일
+  // 강사 이메일: 표준 규격 이메일
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!validateField(DOM.guardianEmail, emailRegex)) {
     isAllValid = false;
   }
   
-  // 지원 동기 (최소 20자)
-  const motivationVal = DOM.userMotivation.value.trim();
-  if (motivationVal.length < 20) {
-    DOM.userMotivation.closest(".form-group").classList.add("has-error");
+  // 담당 프로그램명: 2자 이상
+  const classVal = DOM.selectedCourseTitle.value.trim();
+  const titleGroup = DOM.selectedCourseTitle.closest(".form-group");
+  if (classVal.length < 2) {
+    if (titleGroup) titleGroup.classList.add("has-error");
     isAllValid = false;
   } else {
-    DOM.userMotivation.closest(".form-group").classList.remove("has-error");
+    if (titleGroup) titleGroup.classList.remove("has-error");
   }
   
   return isAllValid;
 }
 
-// Step 3 유효성 검사 (서약 및 동의)
+// Step 2 유효성 검사 (필수 행정 서류 파일 첨부)
+function validateStep2() {
+  let isAllValid = true;
+  
+  // 강사서약서 파일 존재 확인
+  const file1Group = DOM.docFile1.closest(".form-group");
+  if (!DOM.docFile1.files || DOM.docFile1.files.length === 0) {
+    if (file1Group) file1Group.classList.add("has-error");
+    isAllValid = false;
+  } else {
+    if (file1Group) file1Group.classList.remove("has-error");
+  }
+  
+  // 강의계획서 파일 존재 확인
+  const file2Group = DOM.docFile2.closest(".form-group");
+  if (!DOM.docFile2.files || DOM.docFile2.files.length === 0) {
+    if (file2Group) file2Group.classList.add("has-error");
+    isAllValid = false;
+  } else {
+    if (file2Group) file2Group.classList.remove("has-error");
+  }
+  
+  return isAllValid;
+}
+
+// Step 3 유효성 검사 (진행 및 정산 서류 파일 첨부)
 function validateStep3() {
   let isAllValid = true;
   
-  // 안전 서약 동의 체크
-  if (!DOM.agreeSafety.checked) {
-    DOM.agreeSafety.closest(".form-group").classList.add("has-error");
+  // 출석부 파일 존재 확인
+  const file3Group = DOM.docFile3.closest(".form-group");
+  if (!DOM.docFile3.files || DOM.docFile3.files.length === 0) {
+    if (file3Group) file3Group.classList.add("has-error");
     isAllValid = false;
   } else {
-    DOM.agreeSafety.closest(".form-group").classList.remove("has-error");
+    if (file3Group) file3Group.classList.remove("has-error");
   }
   
-  // 개인정보 동의 체크
-  if (!DOM.agreePrivacy.checked) {
-    DOM.agreePrivacy.closest(".form-group").classList.add("has-error");
+  // 최종수업일지 파일 존재 확인
+  const file4Group = DOM.docFile4.closest(".form-group");
+  if (!DOM.docFile4.files || DOM.docFile4.files.length === 0) {
+    if (file4Group) file4Group.classList.add("has-error");
     isAllValid = false;
   } else {
-    DOM.agreePrivacy.closest(".form-group").classList.remove("has-error");
+    if (file4Group) file4Group.classList.remove("has-error");
+  }
+  
+  // 정산 영수증 파일 존재 확인
+  const file5Group = DOM.docFile5.closest(".form-group");
+  if (!DOM.docFile5.files || DOM.docFile5.files.length === 0) {
+    if (file5Group) file5Group.classList.add("has-error");
+    isAllValid = false;
+  } else {
+    if (file5Group) file5Group.classList.remove("has-error");
   }
   
   return isAllValid;
@@ -1578,81 +1618,110 @@ async function handleFormSubmit(e) {
   e.preventDefault();
   
   if (!validateStep3()) {
-    showToast("⚠️ 필수 서약 및 동의 사항에 체크해야 신청서 제출이 가능합니다.");
+    showToast("⚠️ 필수 서류 파일들을 모두 첨부해야 서류 제출이 가능합니다.");
     return;
   }
   
   const timestamp = Date.now();
-  const appId = `DS-${Math.floor(100000 + Math.random() * 900000)}`; // DS prefix for 디지털새싹
+  const d = new Date(timestamp);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
   
-  let newApp = {
-    id: appId,
-    courseId: DOM.selectedCourseId.value,
-    courseTitle: DOM.selectedCourseTitle.value,
-    studentName: DOM.studentName.value.trim(),
-    studentSchoolType: DOM.studentSchoolType.value,
-    studentSchool: DOM.studentSchool.value.trim(),
-    studentGrade: DOM.studentGrade.value,
-    guardianName: DOM.guardianName.value.trim(),
-    guardianPhone: DOM.guardianPhone.value.trim(),
-    guardianEmail: DOM.guardianEmail.value.trim(),
-    userMotivation: DOM.userMotivation.value.trim(),
-    studentNotes: DOM.studentNotes.value.trim(),
-    date: new Date(timestamp).toLocaleDateString("ko-KR", {
-      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-    }),
-    status: "pending" // pending | approved
+  const docId = Math.floor(100000 + Math.random() * 900000);
+  const instructorName = DOM.studentName.value.trim();
+  const className = DOM.selectedCourseTitle.value.trim();
+  const email = DOM.guardianEmail.value.trim();
+  const phone = DOM.guardianPhone.value.trim();
+  
+  let newDocRecord = {
+    id: docId,
+    class: className,
+    name: instructorName,
+    email: email,
+    folder: "",
+    doc1: DOM.docFile1.files[0] ? DOM.docFile1.files[0].name : "❌ 미제출",
+    doc2: DOM.docFile2.files[0] ? DOM.docFile2.files[0].name : "❌ 미제출",
+    doc3: DOM.docFile3.files[0] ? DOM.docFile3.files[0].name : "❌ 미제출",
+    doc4: DOM.docFile4.files[0] ? DOM.docFile4.files[0].name : "❌ 미제출",
+    doc5: DOM.docFile5.files[0] ? DOM.docFile5.files[0].name : "❌ 미제출",
+    date: dateStr
   };
   
   if (isOnline) {
     try {
-      // Save to server
-      const savedApp = await APIService.createApplication(newApp);
-      if (savedApp) {
-        newApp = savedApp; // Use the server formatted app
+      const formData = new FormData();
+      formData.append("instructorName", instructorName);
+      formData.append("className", className);
+      formData.append("email", email);
+      
+      if (DOM.docFile1.files[0]) formData.append("docFile1", DOM.docFile1.files[0]);
+      if (DOM.docFile2.files[0]) formData.append("docFile2", DOM.docFile2.files[0]);
+      if (DOM.docFile3.files[0]) formData.append("docFile3", DOM.docFile3.files[0]);
+      if (DOM.docFile4.files[0]) formData.append("docFile4", DOM.docFile4.files[0]);
+      if (DOM.docFile5.files[0]) formData.append("docFile5", DOM.docFile5.files[0]);
+      
+      const res = await APIService.uploadInstructorDocs(formData);
+      if (res && res.record) {
+        newDocRecord = res.record;
       }
     } catch (err) {
-      console.error("Failed to save to server database:", err);
-      showToast("⚠️ 실시간 DB 저장에 실패하여 로컬 저장소 모드로 임시 접수합니다.");
+      console.error("서버로 강사 서류 업로드 실패:", err);
+      showToast("⚠️ 실시간 DB 업로드에 실패하여 로컬 저장소 모드로 임시 접수합니다.");
+      newDocRecord.folder = `https://drive.google.com/drive/folders/simulated_${docId}`;
     }
+  } else {
+    newDocRecord.folder = `https://drive.google.com/drive/folders/simulated_${docId}`;
   }
   
-  // 로컬 스토리지 저장
-  state.applications.unshift(newApp);
-  localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+  state.instructorDocs.unshift(newDocRecord);
+  localStorage.setItem("digitalsaessak-instructor-docs", JSON.stringify(state.instructorDocs));
   
-  updateBadgeCount();
-  
-  // Step 4 Receipt UI mapping
-  DOM.receiptNo.textContent = newApp.id;
-  DOM.receiptCourse.textContent = newApp.courseTitle;
-  DOM.receiptStudentName.textContent = newApp.studentName;
-  DOM.receiptSchoolGrade.textContent = `${newApp.studentSchool} ${newApp.studentGrade}학년`;
-  DOM.receiptGuardianName.textContent = newApp.guardianName;
-  DOM.receiptDate.textContent = newApp.date;
+  // 성공 화면 UI 바인딩
+  DOM.receiptNo.textContent = `DOC-${newDocRecord.id}`;
+  DOM.receiptStudentName.textContent = newDocRecord.name;
+  DOM.receiptCourse.textContent = newDocRecord.class;
+  DOM.receiptSchoolGrade.textContent = `${phone} / ${newDocRecord.email}`;
+  DOM.receiptDate.textContent = newDocRecord.date;
   
   goToStep(4);
-  updateStatusDashboard();
+  renderInstructorDocs();
+  updateInstructorDocStats();
   
-  showToast("🎉 디지털새싹 캠프 신청서가 정상 접수되었습니다!");
+  showToast("🎉 강사 성과 서류 제출이 성공적으로 처리되었습니다!");
 }
 
 // ============================================================================
 // 9. Status Dashboard Rendering & Cancel Logic
 // ============================================================================
 function updateStatusDashboard() {
-  const apps = state.applications;
+  const docs = state.instructorDocs;
   
-  DOM.summaryTotal.textContent = apps.length;
-  DOM.summaryPending.textContent = apps.filter(a => a.status === "pending").length;
-  DOM.summaryApproved.textContent = apps.filter(a => a.status === "approved").length;
+  let totalDocs = docs.length * 5;
+  let completeCount = 0;
+  let pendingCount = 0;
   
-  if (apps.length === 0) {
+  docs.forEach(inst => {
+    [inst.doc1, inst.doc2, inst.doc3, inst.doc4, inst.doc5].forEach(status => {
+      if (status && status !== "❌ 미제출") {
+        completeCount++;
+      } else {
+        pendingCount++;
+      }
+    });
+  });
+  
+  DOM.summaryTotal.textContent = docs.length + "명";
+  DOM.summaryPending.textContent = pendingCount + "건";
+  DOM.summaryApproved.textContent = completeCount + "건";
+  
+  if (docs.length === 0) {
     DOM.applicationsContainer.innerHTML = `
       <div class="empty-state">
         <i class="fa-regular fa-clipboard empty-icon"></i>
-        <p>신청된 교육 캠프가 없습니다.</p>
-        <p class="empty-sub">상단의 교육과정 탐색에서 원하는 캠프를 선택하여 신청해 보세요!</p>
+        <p>제출된 성과 서류가 없습니다.</p>
+        <p class="empty-sub">메인 배너의 [성과 서류 제출하기] 버튼을 통해 파일 수합을 진행해 주세요!</p>
       </div>
     `;
     return;
@@ -1660,26 +1729,39 @@ function updateStatusDashboard() {
   
   DOM.applicationsContainer.innerHTML = `
     <div class="app-list">
-      ${apps.map(app => `
-        <div class="app-item" data-appid="${app.id}">
+      ${docs.map(doc => {
+        const isLocalFolder = doc.folder && !doc.folder.startsWith("http");
+        return `
+        <div class="app-item" data-appid="${doc.id}">
           <div class="app-details">
-            <span class="app-no">${app.id}</span>
-            <h4 class="app-course-name">${app.courseTitle}</h4>
+            <span class="app-no">DOC-${doc.id}</span>
+            <h4 class="app-course-name">${doc.class}</h4>
             <div class="app-meta">
-              <span><i class="fa-regular fa-user"></i> 학생: ${app.studentName} (${app.studentSchool} ${app.studentGrade}학년)</span>
-              <span><i class="fa-regular fa-circle-user"></i> 보호자: ${app.guardianName}</span>
-              <span><i class="fa-regular fa-clock"></i> 접수일: ${app.date}</span>
+              <span><i class="fa-regular fa-user"></i> 담당 강사: <strong>${doc.name}</strong> (${doc.email})</span>
+              <span><i class="fa-regular fa-clock"></i> 제출일: ${doc.date || '-'}</span>
+              <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.75rem;">
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">서약서: ${doc.doc1.startsWith("docFile1") ? `📎 ${doc.doc1.substring(9)}` : doc.doc1}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">계획서: ${doc.doc2.startsWith("docFile2") ? `📎 ${doc.doc2.substring(9)}` : doc.doc2}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">출석부: ${doc.doc3.startsWith("docFile3") ? `📎 ${doc.doc3.substring(9)}` : doc.doc3}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">수업일지: ${doc.doc4.startsWith("docFile4") ? `📎 ${doc.doc4.substring(9)}` : doc.doc4}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">영수증: ${doc.doc5.startsWith("docFile5") ? `📎 ${doc.doc5.substring(9)}` : doc.doc5}</span>
+              </div>
             </div>
           </div>
           <div class="app-actions">
-            <span class="status-badge ${app.status === 'approved' ? 'badge-approved' : 'badge-pending'}">
-              <i class="fa-solid ${app.status === 'approved' ? 'fa-check' : 'fa-spinner fa-spin'}"></i> 
-              ${app.status === 'approved' ? '승인 완료' : '접수 완료 (대기)'}
-            </span>
-            <button class="btn btn-secondary btn-cancel" onclick="cancelApplication('${app.id}')">신청 취소</button>
+            ${isLocalFolder ? `
+              <span class="status-badge badge-approved" style="font-size: 0.72rem; padding: 4px 10px;">
+                <i class="fa-solid fa-server"></i> 서버 저장 완료
+              </span>
+            ` : `
+              <span class="status-badge badge-pending" style="font-size: 0.72rem; padding: 4px 10px;">
+                <i class="fa-solid fa-cloud"></i> 외부 드라이브 연동
+              </span>
+            `}
+            <button class="btn btn-secondary btn-cancel" onclick="cancelApplication('${doc.id}')">제출 취소</button>
           </div>
         </div>
-      `).join("")}
+      `}).join("")}
     </div>
   `;
 }
@@ -1853,78 +1935,90 @@ function setupEventListeners() {
     e.target.value = formatPhoneNumber(e.target.value);
   });
   
-  // 지원동기 글자 수 카운팅
-  DOM.userMotivation.addEventListener("input", (e) => {
-    const count = e.target.value.trim().length;
-    DOM.motivationLength.textContent = count;
-  });
-  
-  // 실시간 포커스 아웃 시 필드 개별 검증
+  // 강사 성함 실시간 개별 검증
   DOM.studentName.addEventListener("blur", () => {
     const nameRegex = /^[a-zA-Z가-힣\s]{2,15}$/;
     validateField(DOM.studentName, nameRegex);
   });
   
-  DOM.studentSchoolType.addEventListener("change", () => {
-    if (DOM.studentSchoolType.value) {
-      DOM.studentSchoolType.closest(".form-group").classList.remove("has-error");
-    }
-  });
-  
-  DOM.studentSchool.addEventListener("blur", () => {
-    const schoolVal = DOM.studentSchool.value.trim();
-    if (schoolVal.length >= 2) {
-      DOM.studentSchool.closest(".form-group").classList.remove("has-error");
-    } else {
-      DOM.studentSchool.closest(".form-group").classList.add("has-error");
-    }
-  });
-  
-  DOM.studentGrade.addEventListener("change", () => {
-    if (DOM.studentGrade.value) {
-      DOM.studentGrade.closest(".form-group").classList.remove("has-error");
-    }
-  });
-  
-  DOM.guardianName.addEventListener("blur", () => {
-    const nameRegex = /^[a-zA-Z가-힣\s]{2,15}$/;
-    validateField(DOM.guardianName, nameRegex);
-  });
-  
-  DOM.guardianPhone.addEventListener("blur", () => {
-    const phoneRegex = /^01[016789]-\d{3,4}-\d{4}$/;
-    validateField(DOM.guardianPhone, phoneRegex);
-  });
-  
+  // 강사 이메일 실시간 개별 검증
   DOM.guardianEmail.addEventListener("blur", () => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     validateField(DOM.guardianEmail, emailRegex);
   });
   
-  DOM.userMotivation.addEventListener("blur", () => {
-    if (DOM.userMotivation.value.trim().length >= 20) {
-      DOM.userMotivation.closest(".form-group").classList.remove("has-error");
+  // 담당 프로그램명 실시간 개별 검증
+  DOM.selectedCourseTitle.addEventListener("blur", () => {
+    const classVal = DOM.selectedCourseTitle.value.trim();
+    const titleGroup = DOM.selectedCourseTitle.closest(".form-group");
+    if (classVal.length >= 2) {
+      if (titleGroup) titleGroup.classList.remove("has-error");
+    } else {
+      if (titleGroup) titleGroup.classList.add("has-error");
     }
   });
   
-  DOM.agreeSafety.addEventListener("change", () => {
-    if (DOM.agreeSafety.checked) {
-      DOM.agreeSafety.closest(".form-group").classList.remove("has-error");
+  // 파일 드래그 앤 드롭 & 파일선택 상태 변경 핸들러
+  [DOM.docFile1, DOM.docFile2, DOM.docFile3, DOM.docFile4, DOM.docFile5].forEach((fileInput, i) => {
+    if (fileInput) {
+      const wrapper = fileInput.closest(".file-upload-wrapper");
+      if (wrapper) {
+        const dragZone = wrapper.querySelector(".file-drag-zone");
+        
+        dragZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dragZone.style.borderColor = "var(--primary)";
+          dragZone.style.background = "rgba(16, 185, 129, 0.05)";
+        });
+        
+        dragZone.addEventListener("dragleave", () => {
+          dragZone.style.borderColor = "";
+          dragZone.style.background = "";
+        });
+        
+        dragZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dragZone.style.borderColor = "";
+          dragZone.style.background = "";
+          
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            const event = new Event("change");
+            fileInput.dispatchEvent(event);
+          }
+        });
+      }
+      
+      fileInput.addEventListener("change", () => {
+        const formGroup = fileInput.closest(".form-group");
+        if (fileInput.files && fileInput.files.length > 0) {
+          if (formGroup) formGroup.classList.remove("has-error");
+          const zoneText = formGroup.querySelector(".file-drag-text");
+          if (zoneText) {
+            zoneText.textContent = `📎 선택됨: ${fileInput.files[0].name}`;
+            zoneText.style.color = "var(--primary)";
+            zoneText.style.fontWeight = "bold";
+          }
+        }
+      });
     }
   });
   
-  DOM.agreePrivacy.addEventListener("change", () => {
-    if (DOM.agreePrivacy.checked) {
-      DOM.agreePrivacy.closest(".form-group").classList.remove("has-error");
-    }
-  });
+  // 메인 히어로 배너: 성과 서류 제출하기 버튼 동작
+  if (DOM.btnHeroSubmitDocs) {
+    DOM.btnHeroSubmitDocs.addEventListener("click", () => {
+      resetForm();
+      DOM.applyModal.classList.add("active");
+      DOM.body.style.overflow = "hidden";
+    });
+  }
   
   // Step 1 -> Step 2
   DOM.btnNext1.addEventListener("click", () => {
     if (validateStep1()) {
       goToStep(2);
     } else {
-      showToast("⚠️ 입력 양식에 오류가 있습니다. 학생 정보를 다시 확인해 주세요.");
+      showToast("⚠️ 입력 양식에 오류가 있습니다. 강사 및 프로그램 정보를 다시 확인해 주세요.");
     }
   });
   
@@ -1938,7 +2032,7 @@ function setupEventListeners() {
     if (validateStep2()) {
       goToStep(3);
     } else {
-      showToast("⚠️ 입력 양식에 오류가 있습니다. 보호자 정보를 다시 확인해 주세요.");
+      showToast("⚠️ 필수 행정 서류 파일 2종을 모두 첨부해 주세요.");
     }
   });
   

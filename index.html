@@ -54,8 +54,8 @@
       <h1 class="hero-title">새싹이 자라 나무가 되듯,<br><span class="gradient-text">디지털새싹 SW·AI 캠프</span></h1>
       <p class="hero-subtitle">초·중·고등학생을 위한 전액 무료 SW·AI 교육 프로그램! 쉽고 재미있게 배우며 미래를 향한 디지털 역량을 키워보세요.</p>
       <div class="hero-buttons">
-        <a href="#catalog-section" class="btn btn-primary btn-glow" style="display: none !important;">교육과정 둘러보기</a>
-        <a href="#status-section" class="btn btn-primary btn-glow">내 신청내역 조회</a>
+        <button type="button" class="btn btn-primary btn-glow" id="btn-hero-submit-docs"><i class="fa-solid fa-cloud-arrow-up"></i> 성과 서류 제출하기</button>
+        <a href="#status-section" class="btn btn-secondary"><i class="fa-solid fa-magnifying-glass"></i> 제출 현황 조회</a>
       </div>
     </div>
   </section>
@@ -482,66 +482,53 @@
       <div class="progress-tracker">
         <div class="step-indicator active" data-step="1">
           <span class="step-num">1</span>
-          <span class="step-text">학생 정보</span>
+          <span class="step-text">강사 정보</span>
         </div>
         <div class="step-line" id="step-line-1"></div>
         <div class="step-indicator" data-step="2">
           <span class="step-num">2</span>
-          <span class="step-text">보호자 정보</span>
+          <span class="step-text">행정 서류</span>
         </div>
         <div class="step-line" id="step-line-2"></div>
         <div class="step-indicator" data-step="3">
           <span class="step-num">3</span>
-          <span class="step-text">동의 서약</span>
+          <span class="step-text">진행 서류</span>
         </div>
         <div class="step-line" id="step-line-3"></div>
         <div class="step-indicator" data-step="4">
           <span class="step-num">4</span>
-          <span class="step-text">신청 완료</span>
+          <span class="step-text">제출 완료</span>
         </div>
       </div>
 
-      <form id="apply-form" class="apply-form" novalidate>
-        <!-- Step 1: Student Information -->
+      <form id="apply-form" class="apply-form" enctype="multipart/form-data" novalidate>
+        <!-- Step 1: Instructor & Class Information -->
         <div class="form-step active" data-step="1">
-          <h3 class="form-step-title">👤 수강 학생 인적 사항</h3>
-          <p class="form-step-desc">안내 및 반 편성 조정을 위해 정확한 학생 정보를 입력해주세요.</p>
+          <h3 class="form-step-title">👤 강사 및 담당 프로그램 정보</h3>
+          <p class="form-step-desc">서류 관리를 위해 담당 강사 정보와 신청하시는 프로그램명을 입력해주세요.</p>
           
           <div class="form-group">
-            <label for="student-name">학생 이름 <span class="required">*</span></label>
-            <input type="text" id="student-name" name="studentName" placeholder="홍길동" required>
-            <span class="error-msg" id="student-name-error">학생 이름을 2자 이상 입력해주세요.</span>
-          </div>
-          
-          <div class="form-group">
-            <label for="student-school-type">학교 구분 <span class="required">*</span></label>
-            <select id="student-school-type" name="studentSchoolType" required>
-              <option value="" disabled selected>선택하세요</option>
-              <option value="elementary">초등학교</option>
-              <option value="middle">중학교</option>
-              <option value="high">고등학교</option>
-            </select>
-            <span class="error-msg" id="school-type-error">학교 구분을 선택해주세요.</span>
+            <label for="student-name">강사 성함 <span class="required">*</span></label>
+            <input type="text" id="student-name" name="instructorName" placeholder="홍길동" required>
+            <span class="error-msg" id="student-name-error">강사 성함을 2자 이상 입력해주세요.</span>
           </div>
 
           <div class="form-group">
-            <label for="student-school">학교명 <span class="required">*</span></label>
-            <input type="text" id="student-school" name="studentSchool" placeholder="새싹초등학교" required>
-            <span class="error-msg" id="school-error">올바른 학교명(예: 새싹초등학교)을 입력해주세요.</span>
+            <label for="guardian-phone">강사 연락처 <span class="required">*</span></label>
+            <input type="tel" id="guardian-phone" name="guardianPhone" placeholder="010-1234-5678" required>
+            <span class="error-msg" id="guardian-phone-error">올바른 휴대전화 번호(예: 010-1234-5678)를 입력해주세요.</span>
           </div>
 
           <div class="form-group">
-            <label for="student-grade">학년 <span class="required">*</span></label>
-            <select id="student-grade" name="studentGrade" required>
-              <option value="" disabled selected>선택하세요</option>
-              <option value="1">1학년</option>
-              <option value="2">2학년</option>
-              <option value="3">3학년</option>
-              <option value="4">4학년</option>
-              <option value="5">5학년</option>
-              <option value="6">6학년</option>
-            </select>
-            <span class="error-msg" id="grade-error">학년을 선택해주세요.</span>
+            <label for="guardian-email">강사 이메일 <span class="required">*</span></label>
+            <input type="email" id="guardian-email" name="guardianEmail" placeholder="instructor@example.com" required>
+            <span class="error-msg" id="guardian-email-error">올바른 이메일 주소를 입력해주세요.</span>
+          </div>
+          
+          <div class="form-group">
+            <label for="selected-course-title">담당 프로그램(분반)명 <span class="required">*</span></label>
+            <input type="text" id="selected-course-title" name="className" placeholder="예: 파이썬 데이터 분석 B반" required>
+            <span class="error-msg" id="course-title-error">담당하는 프로그램(분반)명을 정확하게 입력해주세요.</span>
           </div>
 
           <div class="form-actions">
@@ -550,90 +537,90 @@
           </div>
         </div>
 
-        <!-- Step 2: Parent/Guardian Info & Details -->
+        <!-- Step 2: Administrative Documents -->
         <div class="form-step" data-step="2">
-          <h3 class="form-step-title">📞 보호자 정보 및 신청 상세</h3>
-          <p class="form-step-desc">비상시 연락을 위한 보호자 연락처와 특이사항을 적어주세요.</p>
+          <h3 class="form-step-title">📄 필수 행정 서류 제출</h3>
+          <p class="form-step-desc">디지털새싹 성과 증명을 위한 기본 서류 2종을 업로드해주세요.</p>
           
           <div class="form-group">
-            <label>선택한 교육과정</label>
-            <input type="text" id="selected-course-title" class="input-readonly" readonly>
-            <input type="hidden" id="selected-course-id">
+            <label for="doc-file-1">1. 강사서약서 <span class="required">*</span></label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="doc-file-1" name="docFile1" accept=".pdf,.doc,.docx,.hwp,.png,.jpg,.jpeg" required>
+              <div class="file-drag-zone">
+                <i class="fa-regular fa-file-pdf file-upload-icon"></i>
+                <p class="file-drag-text">클릭하거나 파일을 드래그하여 업로드하세요.</p>
+                <p class="file-drag-sub">지원 형식: PDF, HWP, Word, 이미지 (최대 10MB)</p>
+              </div>
+            </div>
+            <span class="error-msg" id="file1-error">강사서약서 파일을 첨부해 주세요.</span>
           </div>
 
-          <div class="form-group">
-            <label for="guardian-name">보호자 이름 <span class="required">*</span></label>
-            <input type="text" id="guardian-name" name="guardianName" placeholder="김철수" required>
-            <span class="error-msg" id="guardian-name-error">보호자 이름을 2자 이상 입력해주세요.</span>
+          <div class="form-group" style="margin-top: 20px;">
+            <label for="doc-file-2">2. 강의계획서 <span class="required">*</span></label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="doc-file-2" name="docFile2" accept=".pdf,.doc,.docx,.hwp,.png,.jpg,.jpeg" required>
+              <div class="file-drag-zone">
+                <i class="fa-regular fa-file-lines file-upload-icon"></i>
+                <p class="file-drag-text">클릭하거나 파일을 드래그하여 업로드하세요.</p>
+                <p class="file-drag-sub">지원 형식: PDF, HWP, Word, 이미지 (최대 10MB)</p>
+              </div>
+            </div>
+            <span class="error-msg" id="file2-error">강의계획서 파일을 첨부해 주세요.</span>
           </div>
 
-          <div class="form-group">
-            <label for="guardian-phone">보호자 연락처 <span class="required">*</span></label>
-            <input type="tel" id="guardian-phone" name="guardianPhone" placeholder="010-1234-5678" required>
-            <span class="error-msg" id="guardian-phone-error">올바른 휴대전화 번호(예: 010-1234-5678)를 입력해주세요.</span>
-          </div>
-
-          <div class="form-group">
-            <label for="guardian-email">보호자 이메일 <span class="required">*</span></label>
-            <input type="email" id="guardian-email" name="guardianEmail" placeholder="guardian@example.com" required>
-            <span class="error-msg" id="guardian-email-error">올바른 이메일 주소를 입력해주세요.</span>
-          </div>
-
-          <div class="form-group">
-            <label for="user-motivation">캠프 참여 동기 <span class="required">*</span></label>
-            <textarea id="user-motivation" name="userMotivation" rows="3" placeholder="이번 SW·AI 캠프에 학생이 참여하고 싶은 이유와 기대하는 점을 간단히 적어주세요. (최소 20자)" required></textarea>
-            <span class="error-msg" id="motivation-error">참여 동기를 최소 20자 이상 작성해주세요. (현재 <span id="motivation-length">0</span>자)</span>
-          </div>
-
-          <div class="form-group">
-            <label for="student-notes">알레르기 및 건강상 특이사항</label>
-            <textarea id="student-notes" name="studentNotes" rows="2" placeholder="복용 중인 약, 알레르기, 건강상 주의점 등 운영진이 파악해야 할 사항이 있다면 적어주세요. (없으면 '없음' 기재)"></textarea>
-          </div>
-
-          <div class="form-actions">
+          <div class="form-actions" style="margin-top: 24px;">
             <button type="button" class="btn btn-secondary" id="btn-prev-2"><i class="fa-solid fa-arrow-left"></i> 이전</button>
             <button type="button" class="btn btn-primary" id="btn-next-2">다음 단계 <i class="fa-solid fa-arrow-right"></i></button>
           </div>
         </div>
 
-        <!-- Step 3: Consent & Pledge -->
+        <!-- Step 3: Performance/Process Documents -->
         <div class="form-step" data-step="3">
-          <h3 class="form-step-title">⚖️ 안전 서약 및 개인정보 동의</h3>
-          <p class="form-step-desc">안전한 캠프 운영을 위해 서약서 및 개인정보 수집에 동의해주세요.</p>
+          <h3 class="form-step-title">📊 수업 진행 및 정산 서류 제출</h3>
+          <p class="form-step-desc">수업 운영 및 정산용 증빙 서류 3종을 업로드해주세요.</p>
 
           <div class="form-group">
-            <label>캠프 안전 서약서</label>
-            <div class="consent-text-block glass-card" style="padding: 16px; font-size: 0.82rem; color: var(--text-secondary); max-height: 120px; overflow-y: auto; margin-bottom: 8px;">
-              본인은 디지털새싹 SW·AI 교육 캠프 참가자로서, 교육 기간 동안 지도교사의 지도 지침을 성실히 따르고 안전 규칙을 준수할 것을 서약합니다. 특히 안전사고 예방을 위한 주의사항을 엄수하며, 고의 또는 중대한 과실로 발생한 사고에 대한 책임은 본인에게 있음을 인지합니다.
+            <label for="doc-file-3">3. 출석부(매주) <span class="required">*</span></label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="doc-file-3" name="docFile3" accept=".pdf,.xls,.xlsx,.png,.jpg,.jpeg" required>
+              <div class="file-drag-zone">
+                <i class="fa-regular fa-calendar-check file-upload-icon"></i>
+                <p class="file-drag-text">클릭하거나 파일을 드래그하여 업로드하세요.</p>
+                <p class="file-drag-sub">지원 형식: Excel, PDF, 이미지 (최대 10MB)</p>
+              </div>
             </div>
-            <div class="checkbox-group">
-              <label class="checkbox-label" for="agree-safety">
-                <input type="checkbox" id="agree-safety" name="agreeSafety" required>
-                <span class="checkbox-custom"></span>
-                <span>위 안전 서약서의 내용을 충분히 숙지하였으며 동의합니다. <span class="required">*</span></span>
-              </label>
-              <span class="error-msg" id="safety-error">안전 서약서에 동의해야 신청이 가능합니다.</span>
-            </div>
+            <span class="error-msg" id="file3-error">출석부 파일을 첨부해 주세요.</span>
           </div>
 
           <div class="form-group" style="margin-top: 20px;">
-            <label>개인정보 수집·이용 동의</label>
-            <div class="consent-text-block glass-card" style="padding: 16px; font-size: 0.82rem; color: var(--text-secondary); max-height: 120px; overflow-y: auto; margin-bottom: 8px;">
-              디지털새싹 SW·AI 캠프 주관기관은 교육 참여자 선발, 출석 관리, 학적 증명서 발급 및 지원 혜택 제공 등을 목적으로 신청자의 개인정보(성명, 학교명, 학년, 보호자 성명/연락처/이메일)를 수집·이용합니다. 수집된 정보는 교육 종료 후 관계 법령에 따라 안전하게 보관 및 폐기됩니다.
+            <label for="doc-file-4">4. 최종수업일지 <span class="required">*</span></label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="doc-file-4" name="docFile4" accept=".pdf,.doc,.docx,.hwp,.png,.jpg,.jpeg" required>
+              <div class="file-drag-zone">
+                <i class="fa-regular fa-pen-to-square file-upload-icon"></i>
+                <p class="file-drag-text">클릭하거나 파일을 드래그하여 업로드하세요.</p>
+                <p class="file-drag-sub">지원 형식: PDF, HWP, Word, 이미지 (최대 10MB)</p>
+              </div>
             </div>
-            <div class="checkbox-group">
-              <label class="checkbox-label" for="agree-privacy">
-                <input type="checkbox" id="agree-privacy" name="agreePrivacy" required>
-                <span class="checkbox-custom"></span>
-                <span>개인정보 수집 및 이용에 동의합니다. <span class="required">*</span></span>
-              </label>
-              <span class="error-msg" id="privacy-error">개인정보 수집 및 이용 동의에 체크해야 신청이 가능합니다.</span>
-            </div>
+            <span class="error-msg" id="file4-error">최종수업일지 파일을 첨부해 주세요.</span>
           </div>
 
-          <div class="form-actions">
+          <div class="form-group" style="margin-top: 20px;">
+            <label for="doc-file-5">5. 정산 영수증 <span class="required">*</span></label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="doc-file-5" name="docFile5" accept=".pdf,.png,.jpg,.jpeg" required>
+              <div class="file-drag-zone">
+                <i class="fa-solid fa-receipt file-upload-icon"></i>
+                <p class="file-drag-text">클릭하거나 파일을 드래그하여 업로드하세요.</p>
+                <p class="file-drag-sub">지원 형식: PDF, 이미지 (최대 10MB)</p>
+              </div>
+            </div>
+            <span class="error-msg" id="file5-error">정산 영수증 파일을 첨부해 주세요.</span>
+          </div>
+
+          <div class="form-actions" style="margin-top: 24px;">
             <button type="button" class="btn btn-secondary" id="btn-prev-3"><i class="fa-solid fa-arrow-left"></i> 이전</button>
-            <button type="submit" class="btn btn-primary btn-glow" id="btn-submit">수강 신청 완료 <i class="fa-solid fa-check"></i></button>
+            <button type="submit" class="btn btn-primary btn-glow" id="btn-submit">성과 서류 최종 제출 <i class="fa-solid fa-check"></i></button>
           </div>
         </div>
 
@@ -642,48 +629,40 @@
           <div class="success-icon-wrapper">
             <i class="fa-solid fa-circle-check success-check-icon"></i>
           </div>
-          <h3 class="form-step-title">🎉 수강 신청 완료!</h3>
-          <p class="form-step-desc">디지털새싹 캠프 신청서가 정상적으로 접수되었습니다.</p>
+          <h3 class="form-step-title">🎉 성과 서류 제출 완료!</h3>
+          <p class="form-step-desc">제출하신 디지털새싹 성과 서류가 정상적으로 접수되었습니다.</p>
           
           <div class="receipt-card glass-card">
             <div class="receipt-row">
-              <span class="receipt-label">신청 번호</span>
-              <span class="receipt-value" id="receipt-no">APP-00000</span>
+              <span class="receipt-label">접수 번호</span>
+              <span class="receipt-value" id="receipt-no">DOC-00000</span>
             </div>
             <div class="receipt-row">
-              <span class="receipt-label">신청 캠프</span>
-              <span class="receipt-value" id="receipt-course">-</span>
-            </div>
-            <div class="receipt-row">
-              <span class="receipt-label">참가 학생</span>
+              <span class="receipt-label">담당 강사</span>
               <span class="receipt-value" id="receipt-student-name">-</span>
             </div>
             <div class="receipt-row">
-              <span class="receipt-label">학교 / 학년</span>
+              <span class="receipt-label">담당 프로그램</span>
+              <span class="receipt-value" id="receipt-course">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">연락처 / 이메일</span>
               <span class="receipt-value" id="receipt-school-grade">-</span>
             </div>
             <div class="receipt-row">
-              <span class="receipt-label">보호자 성함</span>
-              <span class="receipt-value" id="receipt-guardian-name">-</span>
-            </div>
-            <div class="receipt-row">
-              <span class="receipt-label">신청 일시</span>
+              <span class="receipt-label">제출 일시</span>
               <span class="receipt-value" id="receipt-date">-</span>
             </div>
             <div class="receipt-row">
-              <span class="receipt-label">캠프 비용</span>
-              <span class="receipt-value text-success" id="receipt-price">전액 무료 (교육부·창의재단)</span>
-            </div>
-            <div class="receipt-row">
-              <span class="receipt-label">접수 상태</span>
-              <span class="receipt-value status-badge badge-pending">접수 완료 (대기)</span>
+              <span class="receipt-label">제출 상태</span>
+              <span class="receipt-value status-badge badge-pending">서류 검토 및 정산 대기</span>
             </div>
           </div>
           
-          <p class="success-notice">학생 매칭 및 반 정원 선발 심사는 접수 후 약 2~3 영업일 내로 진행됩니다. 선발 여부는 입력해 주신 보호자 연락처와 이메일로 개별 연락 드립니다.</p>
+          <p class="success-notice">제출된 서류는 서류 관리 탭에서 확인 및 다운로드 가능합니다. 담당자 검토 및 승인 처리는 약 2~3 영업일 내로 진행됩니다.</p>
 
           <div class="form-actions">
-            <button type="button" class="btn btn-primary" id="btn-view-status">나의 신청 현황 확인</button>
+            <button type="button" class="btn btn-primary" id="btn-view-status">서류 제출 현황 확인</button>
           </div>
         </div>
       </form>
