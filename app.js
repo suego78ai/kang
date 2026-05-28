@@ -226,7 +226,17 @@ const DOM = {
   docFile3: document.getElementById("doc-file-3"),
   docFile4: document.getElementById("doc-file-4"),
   docFile5: document.getElementById("doc-file-5"),
-  btnHeroSubmitDocs: document.getElementById("btn-hero-submit-docs")
+  btnHeroSubmitDocs: document.getElementById("btn-hero-submit-docs"),
+  
+  // Document Preview Elements
+  previewModal: document.getElementById("preview-modal"),
+  previewModalClose: document.getElementById("preview-modal-close"),
+  previewFileTitle: document.getElementById("preview-file-title"),
+  previewIframe: document.getElementById("preview-iframe"),
+  previewImg: document.getElementById("preview-img"),
+  previewUnsupportedMsg: document.getElementById("preview-unsupported-msg"),
+  btnPreviewDownload: document.getElementById("btn-preview-download"),
+  btnPreviewFallbackDownload: document.getElementById("btn-preview-fallback-download")
 };
 
 // ============================================================================
@@ -542,10 +552,10 @@ function updateBadgeCount() {
 // ============================================================================
 
 const DEFAULT_INSTRUCTOR_DOCS_DEMO = [
-  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출" },
-  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료" },
-  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료" },
-  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출" }
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
 ];
 
 window.switchAdminTab = function(tabName) {
@@ -627,7 +637,7 @@ function renderInstructorDocs() {
   
   DOM.spreadsheetTbody.innerHTML = "";
   
-  // 헬퍼: 셀 및 개별 파일 다운로드 링크 렌더링
+  // 헬퍼: 셀 및 개별 파일 다운로드 링크 & 미리보기 트리거 렌더링
   const renderDocCellHtml = (inst, fieldName, instFieldVal) => {
     const isFile = instFieldVal && instFieldVal !== "O 완료" && instFieldVal !== "⚡ 검토중" && instFieldVal !== "❌ 미제출";
     let selectVal = instFieldVal;
@@ -638,9 +648,12 @@ function renderInstructorDocs() {
       const fileUrl = `http://localhost:3000${inst.folder}/${instFieldVal}`;
       const cleanFileName = instFieldVal.substring(instFieldVal.indexOf("_") + 1);
       fileLinkHtml = `
-        <div style="margin-top: 4px; font-size: 0.7rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">
+        <div style="margin-top: 4px; font-size: 0.7rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; display: flex; align-items: center; gap: 4px;">
           <a href="${fileUrl}" target="_blank" style="color: var(--primary); text-decoration: underline;" title="${cleanFileName} 다운로드">
             <i class="fa-solid fa-paperclip"></i> ${cleanFileName}
+          </a>
+          <a href="#" onclick="event.preventDefault(); openPreviewDoc(${inst.id}, '${fieldName}', '${instFieldVal}')" style="color: #fbbf24; text-decoration: none; padding: 2px;" title="미리보기">
+            <i class="fa-regular fa-eye" style="font-size: 0.75rem;"></i>
           </a>
         </div>
       `;
@@ -662,9 +675,17 @@ function renderInstructorDocs() {
     
     const isLocal = inst.folder && !inst.folder.startsWith("http");
     const folderCellHtml = isLocal ? 
-      `<a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: #fff; background: var(--secondary); border: 1px solid rgba(99, 102, 241, 0.2); padding: 4px 8px; border-radius: 20px; text-decoration: none;" title="제출된 서류 전체 일괄 ZIP 다운로드">
-        <i class="fa-solid fa-file-zipper"></i> ZIP 다운
-       </a>` : 
+      `<div style="display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 2px;">
+        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=admin" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: bold; color: #fff; background: var(--secondary); border: 1px solid rgba(99, 102, 241, 0.2); padding: 3px 6px; border-radius: 4px; text-decoration: none; width: 100%; text-align: center;" title="행정서약서, 강의계획서 일괄 ZIP 다운로드">
+          <i class="fa-solid fa-file-zipper"></i> 행정 ZIP
+        </a>
+        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=process" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: bold; color: #fff; background: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); padding: 3px 6px; border-radius: 4px; text-decoration: none; width: 100%; text-align: center;" title="출석부, 최종수업일지, 정산영수증 일괄 ZIP 다운로드">
+          <i class="fa-solid fa-file-zipper"></i> 진행 ZIP
+        </a>
+        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=all" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: bold; color: #fff; background: var(--primary); border: 1px solid rgba(16, 185, 129, 0.2); padding: 3px 6px; border-radius: 4px; text-decoration: none; width: 100%; text-align: center;" title="제출된 전체 서류 일괄 ZIP 다운로드">
+          <i class="fa-solid fa-file-zipper"></i> 전체 ZIP
+        </a>
+       </div>` : 
       (inst.folder ? 
         `<a href="${inst.folder}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: var(--primary); background: var(--success-bg); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 8px; border-radius: 20px; text-decoration: none;">
           <i class="fa-solid fa-folder-open"></i> 구글 드라이브
@@ -702,6 +723,13 @@ function renderInstructorDocs() {
       <td>
         ${renderDocCellHtml(inst, 'doc5', inst.doc5)}
       </td>
+      <td>
+        <select onchange="updateDocCell(${inst.id}, 'status', this.value)" class="status-select ${getStatusClass(inst.status || '검토중')}">
+          <option value="검토중" ${inst.status === '검토중' || !inst.status ? 'selected' : ''}>검토중</option>
+          <option value="제출 완료" ${inst.status === '제출 완료' ? 'selected' : ''}>제출 완료</option>
+          <option value="반려" ${inst.status === '반려' ? 'selected' : ''}>반려</option>
+        </select>
+      </td>
       <td style="text-align: center;">
         <button onclick="removeInstructorDocRow(${inst.id})" style="background: none; border: none; color: var(--accent); cursor: pointer; padding: 4px; border-radius: 4px; transition: var(--transition-fast);" title="행 삭제">
           <i class="fa-regular fa-trash-can"></i>
@@ -718,9 +746,12 @@ function renderInstructorDocs() {
 
 function getStatusClass(val) {
   switch(val) {
-    case 'O 완료': return 'status-complete';
-    case '⚡ 검토중': return 'status-review';
-    case '❌ 미제출': return 'status-pending';
+    case 'O 완료':
+    case '제출 완료': return 'status-complete';
+    case '⚡ 검토중':
+    case '검토중': return 'status-review';
+    case '❌ 미제출':
+    case '반려': return 'status-pending';
     default: return '';
   }
 }
@@ -738,6 +769,7 @@ window.updateDocCell = function(id, key, value) {
     } else {
       updateInstructorDocStats();
     }
+    updateStatusDashboard();
     saveInstructorDocs();
   }
 };
@@ -1408,6 +1440,45 @@ function closeModal(modalId) {
   }
 }
 
+function openPreviewModal(fileUrl, fileName) {
+  if (!DOM.previewModal) return;
+  
+  const cleanFileName = fileName.indexOf("_") !== -1 ? fileName.substring(fileName.indexOf("_") + 1) : fileName;
+  DOM.previewFileTitle.innerHTML = `<i class="fa-regular fa-file-lines" style="color: var(--primary); margin-right: 8px;"></i> 미리보기: ${cleanFileName}`;
+  DOM.btnPreviewDownload.href = fileUrl;
+  DOM.btnPreviewFallbackDownload.href = fileUrl;
+  
+  DOM.previewIframe.style.display = "none";
+  DOM.previewImg.style.display = "none";
+  DOM.previewUnsupportedMsg.style.display = "none";
+  
+  DOM.previewIframe.src = "";
+  DOM.previewImg.src = "";
+  
+  const ext = fileName.split('.').pop().toLowerCase();
+  
+  if (ext === "pdf") {
+    DOM.previewIframe.src = fileUrl;
+    DOM.previewIframe.style.display = "block";
+  } else if (["png", "jpg", "jpeg", "gif"].includes(ext)) {
+    DOM.previewImg.src = fileUrl;
+    DOM.previewImg.style.display = "block";
+  } else {
+    DOM.previewUnsupportedMsg.style.display = "block";
+  }
+  
+  DOM.previewModal.classList.add("active");
+  DOM.body.style.overflow = "hidden"; // 스크롤 잠금
+}
+
+window.openPreviewDoc = function(id, key, fileName) {
+  const inst = state.instructorDocs.find(item => item.id === id);
+  if (inst && inst.folder) {
+    const fileUrl = inst.folder.startsWith("http") ? `${inst.folder}/${fileName}` : `http://localhost:3000${inst.folder}/${fileName}`;
+    openPreviewModal(fileUrl, fileName);
+  }
+};
+
 // ============================================================================
 // 7. Multi-step Form Flow & Validations
 // ============================================================================
@@ -1678,6 +1749,10 @@ async function handleFormSubmit(e) {
   state.instructorDocs.unshift(newDocRecord);
   localStorage.setItem("digitalsaessak-instructor-docs", JSON.stringify(state.instructorDocs));
   
+  // 강사 본인의 조회용 로컬스토리지 목록에 추가
+  state.applications.unshift({ id: newDocRecord.id });
+  localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+  
   // 성공 화면 UI 바인딩
   DOM.receiptNo.textContent = `DOC-${newDocRecord.id}`;
   DOM.receiptStudentName.textContent = newDocRecord.name;
@@ -1688,6 +1763,7 @@ async function handleFormSubmit(e) {
   goToStep(4);
   renderInstructorDocs();
   updateInstructorDocStats();
+  updateStatusDashboard();
   
   showToast("🎉 강사 성과 서류 제출이 성공적으로 처리되었습니다!");
 }
@@ -1698,11 +1774,14 @@ async function handleFormSubmit(e) {
 function updateStatusDashboard() {
   const docs = state.instructorDocs;
   
-  let totalDocs = docs.length * 5;
+  // 강사가 이 브라우저에서 제출했거나 검색을 통해 등록한 IDs만 필터링하여 조회
+  const localAppIds = state.applications.map(a => Number(a.id));
+  const filteredDocs = docs.filter(d => localAppIds.includes(Number(d.id)));
+  
   let completeCount = 0;
   let pendingCount = 0;
   
-  docs.forEach(inst => {
+  filteredDocs.forEach(inst => {
     [inst.doc1, inst.doc2, inst.doc3, inst.doc4, inst.doc5].forEach(status => {
       if (status && status !== "❌ 미제출") {
         completeCount++;
@@ -1712,16 +1791,16 @@ function updateStatusDashboard() {
     });
   });
   
-  DOM.summaryTotal.textContent = docs.length + "명";
-  DOM.summaryPending.textContent = pendingCount + "건";
-  DOM.summaryApproved.textContent = completeCount + "건";
+  DOM.summaryTotal.textContent = filteredDocs.length + "건";
+  DOM.summaryPending.textContent = filteredDocs.filter(d => d.status === "검토중" || !d.status).length + "건";
+  DOM.summaryApproved.textContent = filteredDocs.filter(d => d.status === "제출 완료").length + "건";
   
-  if (docs.length === 0) {
+  if (filteredDocs.length === 0) {
     DOM.applicationsContainer.innerHTML = `
       <div class="empty-state">
         <i class="fa-regular fa-clipboard empty-icon"></i>
-        <p>제출된 성과 서류가 없습니다.</p>
-        <p class="empty-sub">메인 배너의 [성과 서류 제출하기] 버튼을 통해 파일 수합을 진행해 주세요!</p>
+        <p>조회된 제출 서류가 없습니다.</p>
+        <p class="empty-sub">본인의 강사 이름과 이메일 주소로 검색하여 제출 내역을 조회해 보세요!</p>
       </div>
     `;
     return;
@@ -1729,36 +1808,51 @@ function updateStatusDashboard() {
   
   DOM.applicationsContainer.innerHTML = `
     <div class="app-list">
-      ${docs.map(doc => {
+      ${filteredDocs.map(doc => {
         const isLocalFolder = doc.folder && !doc.folder.startsWith("http");
+        const status = doc.status || '검토중';
+        let statusBadgeHtml = '';
+        
+        if (status === '제출 완료') {
+          statusBadgeHtml = `
+            <span class="status-badge badge-approved" style="font-size: 0.72rem; padding: 4px 10px;">
+              <i class="fa-solid fa-circle-check"></i> 제출 완료 (승인)
+            </span>
+          `;
+        } else if (status === '반려') {
+          statusBadgeHtml = `
+            <span class="status-badge badge-rejected" style="font-size: 0.72rem; padding: 4px 10px;">
+              <i class="fa-solid fa-circle-xmark"></i> 반려 (서류 보완 필요)
+            </span>
+          `;
+        } else {
+          statusBadgeHtml = `
+            <span class="status-badge badge-pending" style="font-size: 0.72rem; padding: 4px 10px;">
+              <i class="fa-solid fa-spinner fa-spin"></i> 검토 중
+            </span>
+          `;
+        }
+        
         return `
         <div class="app-item" data-appid="${doc.id}">
           <div class="app-details">
-            <span class="app-no">DOC-${doc.id}</span>
+            <span class="app-no">제출번호: DOC-${doc.id}</span>
             <h4 class="app-course-name">${doc.class}</h4>
             <div class="app-meta">
               <span><i class="fa-regular fa-user"></i> 담당 강사: <strong>${doc.name}</strong> (${doc.email})</span>
-              <span><i class="fa-regular fa-clock"></i> 제출일: ${doc.date || '-'}</span>
+              <span><i class="fa-regular fa-clock"></i> 최종 제출일: ${doc.date || '-'}</span>
               <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.75rem;">
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">서약서: ${doc.doc1.startsWith("docFile1") ? `📎 ${doc.doc1.substring(9)}` : doc.doc1}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">계획서: ${doc.doc2.startsWith("docFile2") ? `📎 ${doc.doc2.substring(9)}` : doc.doc2}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">출석부: ${doc.doc3.startsWith("docFile3") ? `📎 ${doc.doc3.substring(9)}` : doc.doc3}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">수업일지: ${doc.doc4.startsWith("docFile4") ? `📎 ${doc.doc4.substring(9)}` : doc.doc4}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">영수증: ${doc.doc5.startsWith("docFile5") ? `📎 ${doc.doc5.substring(9)}` : doc.doc5}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">서약서: ${doc.doc1.startsWith("docFile1") || doc.doc1 !== "❌ 미제출" && doc.doc1 !== "O 완료" && doc.doc1 !== "⚡ 검토중" ? `📎 완료` : doc.doc1}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">계획서: ${doc.doc2.startsWith("docFile2") || doc.doc2 !== "❌ 미제출" && doc.doc2 !== "O 완료" && doc.doc2 !== "⚡ 검토중" ? `📎 완료` : doc.doc2}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">출석부: ${doc.doc3.startsWith("docFile3") || doc.doc3 !== "❌ 미제출" && doc.doc3 !== "O 완료" && doc.doc3 !== "⚡ 검토중" ? `📎 완료` : doc.doc3}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">수업일지: ${doc.doc4.startsWith("docFile4") || doc.doc4 !== "❌ 미제출" && doc.doc4 !== "O 완료" && doc.doc4 !== "⚡ 검토중" ? `📎 완료` : doc.doc4}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">영수증: ${doc.doc5.startsWith("docFile5") || doc.doc5 !== "❌ 미제출" && doc.doc5 !== "O 완료" && doc.doc5 !== "⚡ 검토중" ? `📎 완료` : doc.doc5}</span>
               </div>
             </div>
           </div>
           <div class="app-actions">
-            ${isLocalFolder ? `
-              <span class="status-badge badge-approved" style="font-size: 0.72rem; padding: 4px 10px;">
-                <i class="fa-solid fa-server"></i> 서버 저장 완료
-              </span>
-            ` : `
-              <span class="status-badge badge-pending" style="font-size: 0.72rem; padding: 4px 10px;">
-                <i class="fa-solid fa-cloud"></i> 외부 드라이브 연동
-              </span>
-            `}
-            <button class="btn btn-secondary btn-cancel" onclick="cancelApplication('${doc.id}')">제출 취소</button>
+            ${statusBadgeHtml}
+            <button class="btn btn-secondary btn-cancel" onclick="cancelApplication('${doc.id}')">목록에서 삭제</button>
           </div>
         </div>
       `}).join("")}
@@ -1901,6 +1995,14 @@ function setupEventListeners() {
       }
     }
   });
+  if (DOM.previewModalClose) {
+    DOM.previewModalClose.addEventListener("click", () => closeModal("preview-modal"));
+  }
+  if (DOM.previewModal) {
+    DOM.previewModal.addEventListener("click", (e) => {
+      if (e.target === DOM.previewModal) closeModal("preview-modal");
+    });
+  }
   
   // 스크롤 시 Back-to-top 노출 및 헤더 스타일 스위칭
   window.addEventListener("scroll", () => {
@@ -2152,6 +2254,66 @@ function setupEventListeners() {
 // --------------------------------------------------------------------------
 // Admin Auth Helpers
 // --------------------------------------------------------------------------
+async function handleLookup() {
+  const nameInput = document.getElementById("lookup-student-name");
+  const emailInput = document.getElementById("lookup-guardian-phone");
+  const resultsInfo = document.getElementById("lookup-results-info");
+  
+  if (!nameInput || !emailInput || !resultsInfo) return;
+  
+  const instructorName = nameInput.value.trim();
+  const instructorEmail = emailInput.value.trim();
+  
+  if (!instructorName || !instructorEmail) {
+    showToast("⚠️ 강사 이름과 이메일 주소를 모두 입력해주세요.");
+    return;
+  }
+  
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(instructorEmail)) {
+    showToast("⚠️ 올바른 이메일 주소 형식으로 입력해주세요.");
+    return;
+  }
+  
+  resultsInfo.style.display = "flex";
+  resultsInfo.className = "lookup-results-info";
+  resultsInfo.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 데이터베이스 검색 중...`;
+  
+  let matched = [];
+  if (isOnline) {
+    try {
+      const allDocs = await APIService.getInstructorDocs();
+      matched = allDocs.filter(d => d.name === instructorName && d.email === instructorEmail);
+    } catch (err) {
+      console.error("Failed to lookup instructor docs on server, trying local cache:", err);
+      matched = state.instructorDocs.filter(d => d.name === instructorName && d.email === instructorEmail);
+    }
+  } else {
+    matched = state.instructorDocs.filter(d => d.name === instructorName && d.email === instructorEmail);
+  }
+  
+  if (matched && matched.length > 0) {
+    let addedCount = 0;
+    matched.forEach(doc => {
+      const exists = state.applications.some(a => Number(a.id) === Number(doc.id));
+      if (!exists) {
+        state.applications.unshift({ id: doc.id });
+        addedCount++;
+      }
+    });
+    
+    localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
+    updateStatusDashboard();
+    
+    resultsInfo.className = "lookup-results-info success";
+    resultsInfo.innerHTML = `<i class="fa-solid fa-circle-check"></i> 성공: ${matched.length}건의 제출 내역을 동기화했습니다.`;
+    showToast(`🎉 제출 내역 ${matched.length}건을 동기화했습니다!`);
+  } else {
+    resultsInfo.className = "lookup-results-info error";
+    resultsInfo.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 입력한 정보와 일치하는 제출 서류 기록을 찾을 수 없습니다.`;
+  }
+}
+
 function openAdminLoginModal() {
   DOM.loginId.value = "";
   DOM.loginPw.value = "";
@@ -2459,78 +2621,3 @@ window.deleteAppAdmin = async function(appId) {
   }
 };
 
-async function handleLookup() {
-  const nameInput = document.getElementById("lookup-student-name");
-  const phoneInput = document.getElementById("lookup-guardian-phone");
-  const resultsInfo = document.getElementById("lookup-results-info");
-  
-  if (!nameInput || !phoneInput || !resultsInfo) return;
-  
-  const studentName = nameInput.value.trim();
-  const guardianPhone = phoneInput.value.trim();
-  
-  if (!studentName || !guardianPhone) {
-    showToast("⚠️ 학생 이름과 보호자 연락처를 모두 입력해주세요.");
-    return;
-  }
-  
-  const phoneRegex = /^01[016789]-\d{3,4}-\d{4}$/;
-  if (!phoneRegex.test(guardianPhone)) {
-    showToast("⚠️ 올바른 휴대전화 번호 형식(예: 010-1234-5678)으로 입력해주세요.");
-    return;
-  }
-  
-  resultsInfo.style.display = "flex";
-  resultsInfo.className = "lookup-results-info";
-  resultsInfo.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 데이터베이스 검색 중...`;
-  
-  if (!isOnline) {
-    resultsInfo.className = "lookup-results-info warning";
-    resultsInfo.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 현재 로컬 저장소 모드입니다. 실시간 조회를 하려면 로컬 서버를 작동 시켜주세요.`;
-    setTimeout(() => { resultsInfo.style.display = "none"; }, 4000);
-    return;
-  }
-  
-  try {
-    const matched = await APIService.getApplicationsBySearch(studentName, guardianPhone);
-    
-    if (matched && matched.length > 0) {
-      let addedCount = 0;
-      matched.forEach(app => {
-        const exists = state.applications.some(a => a.id === app.id);
-        if (!exists) {
-          state.applications.unshift(app);
-          addedCount++;
-        } else {
-          const localIdx = state.applications.findIndex(a => a.id === app.id);
-          state.applications[localIdx].status = app.status;
-        }
-      });
-      
-      if (addedCount > 0) {
-        localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
-        updateBadgeCount();
-        updateStatusDashboard();
-        showToast(`🎉 새로운 신청 내역 ${addedCount}건을 조회하여 내역에 추가했습니다!`);
-        resultsInfo.className = "lookup-results-info success";
-        resultsInfo.innerHTML = `<i class="fa-solid fa-circle-check"></i> 성공: ${matched.length}건의 신청 내역을 동기화했습니다. (새로 추가: ${addedCount}건)`;
-      } else {
-        localStorage.setItem("digitalsaessak-apps", JSON.stringify(state.applications));
-        updateStatusDashboard();
-        resultsInfo.className = "lookup-results-info success";
-        resultsInfo.innerHTML = `<i class="fa-solid fa-circle-check"></i> 이미 목록에 등록된 신청 내역 ${matched.length}건을 동기화했습니다.`;
-      }
-    } else {
-      resultsInfo.className = "lookup-results-info error";
-      resultsInfo.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 검색 결과 일치하는 신청 내역이 없습니다.`;
-    }
-  } catch (err) {
-    resultsInfo.className = "lookup-results-info error";
-    resultsInfo.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 서버 통신 에러가 발생했습니다.`;
-    showToast("⚠️ 조회 중 에러가 발생했습니다.");
-  }
-  
-  setTimeout(() => {
-    resultsInfo.style.display = "none";
-  }, 5000);
-}

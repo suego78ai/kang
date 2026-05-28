@@ -13,10 +13,10 @@ const INSTRUCTOR_DOCS_FILE = path.join(__dirname, "instructor_docs.json");
 
 // Default Demo Instructor Documents
 const DEFAULT_INSTRUCTOR_DOCS = [
-  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출" },
-  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료" },
-  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료" },
-  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출" }
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
 ];
 
 // Helper: Read Instructor Docs DB
@@ -397,7 +397,8 @@ app.post("/api/instructor-docs/upload", (req, res) => {
       doc3: getDocStatus('docFile3'),
       doc4: getDocStatus('docFile4'),
       doc5: getDocStatus('docFile5'),
-      date: dateStr // 제출 날짜
+      date: dateStr, // 제출 날짜
+      status: "검토중" // 관리자 검토를 위한 기본 상태 설정
     };
     
     db.push(newDocRecord);
@@ -407,9 +408,10 @@ app.post("/api/instructor-docs/upload", (req, res) => {
   });
 });
 
-// 13. Download Instructor Documents Folder as ZIP (Requires Admin Auth)
+// 13. Download Instructor Documents Folder as ZIP (Supports Admin/Process filters)
 app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
   const { id } = req.params;
+  const { type } = req.query; // admin (행정서류 1, 2) | process (진행서류 3, 4, 5) | all
   const db = readInstructorDocsDb();
   const record = db.find(inst => inst.id === parseInt(id));
   
@@ -430,9 +432,43 @@ app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
   
   try {
     const zip = new AdmZip();
-    zip.addLocalFolder(targetDir);
+    let zipSuffix = "전체서류";
     
-    const zipName = `${folderName}.zip`;
+    if (type === "admin") {
+      zipSuffix = "행정서류";
+      // doc1, doc2 파일 필터링 추가
+      [record.doc1, record.doc2].forEach(fileVal => {
+        const isFile = fileVal && fileVal !== "O 완료" && fileVal !== "⚡ 검토중" && fileVal !== "❌ 미제출";
+        if (isFile) {
+          const filePath = path.join(targetDir, fileVal);
+          if (fs.existsSync(filePath)) {
+            zip.addLocalFile(filePath);
+          }
+        }
+      });
+    } else if (type === "process") {
+      zipSuffix = "진행서류";
+      // doc3, doc4, doc5 파일 필터링 추가
+      [record.doc3, record.doc4, record.doc5].forEach(fileVal => {
+        const isFile = fileVal && fileVal !== "O 완료" && fileVal !== "⚡ 검토중" && fileVal !== "❌ 미제출";
+        if (isFile) {
+          const filePath = path.join(targetDir, fileVal);
+          if (fs.existsSync(filePath)) {
+            zip.addLocalFile(filePath);
+          }
+        }
+      });
+    } else {
+      // 전체 압축
+      zip.addLocalFolder(targetDir);
+    }
+    
+    // 압축할 파일 항목 체크
+    if (zip.getEntries().length === 0) {
+      return res.status(400).json({ error: `선택하신 분류(${zipSuffix})에 제출 완료된 물리 서류 파일이 존재하지 않습니다.` });
+    }
+    
+    const zipName = `${folderName}_${zipSuffix}.zip`;
     const buffer = zip.toBuffer();
     
     // Set headers

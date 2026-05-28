@@ -100,26 +100,26 @@
     <section id="status-section" class="status-section">
       <div class="section-header">
         <div class="section-title-wrapper" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
-          <h2 class="section-title" style="margin: 0;">📋 나의 신청 현황</h2>
+          <h2 class="section-title" style="margin: 0;">📋 강사 서류 제출 현황 조회</h2>
           <span class="db-status-badge offline" id="db-status-badge">
             <i class="fa-solid fa-circle status-dot"></i> <span id="db-status-text">로컬 저장소 모드</span>
           </span>
         </div>
-        <p class="section-desc">접수하신 디지털새싹 교육 캠프의 신청 현황을 실시간으로 확인하고 관리하세요.</p>
+        <p class="section-desc">제출하신 디지털새싹 강사 행정서류 및 진행서류 현황을 실시간으로 확인하고 관리하세요.</p>
       </div>
 
       <!-- DB Search / Lookup Box -->
       <div class="status-search-card glass-card" style="margin-bottom: 24px;">
-        <h3 class="status-search-title"><i class="fa-solid fa-magnifying-glass"></i> 다른 기기에서 신청한 내역 조회하기</h3>
-        <p class="status-search-desc">신청 당시 입력한 학생 이름과 보호자 연락처를 정확히 입력하시면 데이터베이스에서 신청 내역을 조회해 내역에 동적 추가합니다.</p>
+        <h3 class="status-search-title"><i class="fa-solid fa-magnifying-glass"></i> 제출한 서류 현황 조회하기</h3>
+        <p class="status-search-desc">서류 제출 시 입력한 강사 이름과 이메일 주소를 정확히 입력하시면 데이터베이스에서 제출 내역을 조회해 내역에 동적 추가합니다.</p>
         <div class="status-search-form">
           <div class="search-input-group">
             <i class="fa-regular fa-user input-icon"></i>
-            <input type="text" id="lookup-student-name" placeholder="학생 이름 (예: 홍길동)">
+            <input type="text" id="lookup-student-name" placeholder="강사 이름 (예: 홍길동)">
           </div>
           <div class="search-input-group">
-            <i class="fa-solid fa-phone input-icon"></i>
-            <input type="tel" id="lookup-guardian-phone" placeholder="보호자 연락처 (예: 010-1234-5678)" maxlength="13">
+            <i class="fa-regular fa-envelope input-icon"></i>
+            <input type="email" id="lookup-guardian-phone" placeholder="이메일 주소 (예: instructor@inha.ac.kr)">
           </div>
           <button type="button" class="btn btn-primary" id="btn-lookup-apps">내역 조회 <i class="fa-solid fa-chevron-right"></i></button>
         </div>
@@ -131,17 +131,17 @@
       <div class="status-dashboard-card">
         <div class="status-summary">
           <div class="summary-item">
-            <span class="summary-label">총 신청 건수</span>
+            <span class="summary-label">총 제출 건수</span>
             <span class="summary-value" id="summary-total">0</span>
           </div>
           <div class="summary-divider"></div>
           <div class="summary-item">
-            <span class="summary-label">심사 중</span>
+            <span class="summary-label">검토 중</span>
             <span class="summary-value" id="summary-pending">0</span>
           </div>
           <div class="summary-divider"></div>
           <div class="summary-item">
-            <span class="summary-label">승인 완료</span>
+            <span class="summary-label">제출 완료</span>
             <span class="summary-value text-success" id="summary-approved">0</span>
           </div>
         </div>
@@ -150,8 +150,8 @@
           <!-- Dynamically loaded via JavaScript -->
           <div class="empty-state">
             <i class="fa-regular fa-clipboard empty-icon"></i>
-            <p>신청된 교육 캠프가 없습니다.</p>
-            <p class="empty-sub">상단의 교육과정 탐색에서 원하는 캠프를 선택하여 신청해 보세요!</p>
+            <p>조회된 제출 서류가 없습니다.</p>
+            <p class="empty-sub">본인의 강사 이름과 이메일 주소로 검색하여 제출 내역을 조회해 보세요!</p>
           </div>
         </div>
       </div>
@@ -324,12 +324,13 @@
                   <th class="col-indicator" style="width: 230px;">B</th>
                   <th class="col-indicator" style="width: 140px;">C</th>
                   <th class="col-indicator" style="width: 220px;">D</th>
-                  <th class="col-indicator" style="width: 150px; text-align: center;">E</th>
+                  <th class="col-indicator" style="width: 230px; text-align: center;">E</th>
                   <th class="col-indicator" style="width: 110px; text-align: center;">F</th>
                   <th class="col-indicator" style="width: 110px; text-align: center;">G</th>
                   <th class="col-indicator" style="width: 110px; text-align: center;">H</th>
                   <th class="col-indicator" style="width: 110px; text-align: center;">I</th>
                   <th class="col-indicator" style="width: 110px; text-align: center;">J</th>
+                  <th class="col-indicator" style="width: 110px; text-align: center;">K</th>
                   <th class="col-indicator" style="width: 70px; text-align: center;"></th>
                 </tr>
                 <tr style="background: rgba(255, 255, 255, 0.03); border-bottom: 2px solid var(--border-color);">
@@ -338,12 +339,13 @@
                   <th>분반 프로그램명</th>
                   <th>담당 강사명</th>
                   <th>강사 이메일 주소</th>
-                  <th style="text-align: center;">개인제출폴더</th>
+                  <th style="text-align: center;">개인제출폴더 (일괄다운)</th>
                   <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">강사서약서</th>
                   <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">강의계획서</th>
                   <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">출석부(매주)</th>
                   <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">최종수업일지</th>
                   <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">정산 영수증</th>
+                  <th style="text-align: center; background: rgba(16, 185, 129, 0.05);">최종 상태</th>
                   <th style="text-align: center; color: var(--text-muted);">관리</th>
                 </tr>
               </thead>
@@ -717,6 +719,32 @@
   <button id="back-to-top" class="back-to-top" aria-label="맨 위로 가기">
     <i class="fa-solid fa-arrow-up"></i>
   </button>
+
+  <!-- Modal 4: Document Preview Modal -->
+  <div class="modal-overlay" id="preview-modal">
+    <div class="modal-content glass-card preview-modal-content" style="max-width: 850px; width: 90%; padding: 24px;">
+      <button class="modal-close" id="preview-modal-close" aria-label="모달 닫기">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="preview-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+        <h3 class="preview-title" id="preview-file-title" style="font-size: 1.1rem; margin: 0; color: var(--text-primary); font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;"><i class="fa-regular fa-file-lines" style="color: var(--primary); margin-right: 8px;"></i> 서류 미리보기</h3>
+        <a href="#" id="btn-preview-download" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.78rem; text-decoration: none;" download><i class="fa-solid fa-download"></i> 다운로드</a>
+      </div>
+      <div class="preview-body" style="height: 520px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <!-- Dynamic Preview Area -->
+        <iframe id="preview-iframe" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
+        <img id="preview-img" style="max-width: 100%; max-height: 100%; object-fit: contain; display: none;" alt="서류 미리보기 이미지">
+        
+        <!-- Un-renderable files placeholder -->
+        <div id="preview-unsupported-msg" style="text-align: center; padding: 32px; display: none;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; color: #f59e0b; margin-bottom: 16px;"></i>
+          <h4 style="margin: 0 0 8px 0; font-size: 1rem; color: var(--text-primary);">미리보기를 지원하지 않는 서류 형식입니다</h4>
+          <p style="margin: 0 0 20px 0; font-size: 0.8rem; color: var(--text-secondary);">HWP, Word, Excel, ZIP 등은 브라우저에서 직접 미리보기가 불가능합니다.</p>
+          <a href="#" id="btn-preview-fallback-download" class="btn btn-primary" download><i class="fa-solid fa-download"></i> 서류 파일 다운로드</a>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="./app.js"></script>
