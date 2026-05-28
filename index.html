@@ -164,8 +164,23 @@
         <p class="section-desc">디지털새싹 캠프 전체 신청 내역을 조회하고 실시간으로 접수 승인 및 반려 상태를 관리합니다.</p>
       </div>
 
-      <div class="admin-dashboard-card glass-card">
-        <div class="admin-controls">
+      <!-- Admin Sub Tabs Navigation -->
+      <div class="admin-tabs">
+        <button type="button" class="admin-tab-btn active" id="admin-tab-btn-applications" onclick="switchAdminTab('applications')">
+          <i class="fa-solid fa-clipboard-list"></i> 신청서 접수 관리
+        </button>
+        <button type="button" class="admin-tab-btn" id="admin-tab-btn-courses" onclick="switchAdminTab('courses')">
+          <i class="fa-solid fa-graduation-cap"></i> 교육과정 등록 관리
+        </button>
+        <button type="button" class="admin-tab-btn" id="admin-tab-btn-instructor-docs" onclick="switchAdminTab('instructor-docs')">
+          <i class="fa-solid fa-file-excel"></i> 강사 서류 자동화 관리
+        </button>
+      </div>
+
+      <!-- Tab Content 1: Applications -->
+      <div id="admin-tab-content-applications" class="admin-tab-content">
+        <div class="admin-dashboard-card glass-card">
+          <div class="admin-controls">
           <div class="admin-stats">
             <span class="admin-stat-chip">전체 <strong id="admin-stat-total">0</strong>건</span>
             <span class="admin-stat-chip text-warning">대기 <strong id="admin-stat-pending">0</strong>건</span>
@@ -203,8 +218,9 @@
         </div>
       </div>
 
-      <!-- Course Management Card -->
-      <div class="admin-dashboard-card glass-card" style="margin-top: 40px;">
+      <!-- Tab Content 2: Courses -->
+      <div id="admin-tab-content-courses" class="admin-tab-content" style="display: none;">
+        <div class="admin-dashboard-card glass-card" style="margin-top: 0;">
         <div class="section-header" style="padding-top: 10px;">
           <h3 class="section-title" style="font-size: 1.5rem;"><i class="fa-solid fa-file-excel"></i> 교육과정 등록 및 관리 (엑셀 업로드)</h3>
           <p class="section-desc">엑셀 파일을 업로드하여 '교육과정 탐색 메뉴'에 노출될 교육 캠프 목록을 일괄 변경합니다.</p>
@@ -253,6 +269,166 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Tab Content 3: Instructor Documents Automation -->
+      <div id="admin-tab-content-instructor-docs" class="admin-tab-content" style="display: none;">
+        <!-- Stats Widgets -->
+        <div class="status-summary" style="margin-bottom: 24px;">
+          <div class="summary-item">
+            <span class="summary-label">전체 완료율</span>
+            <span class="summary-value" id="overall-completion-rate">0%</span>
+            <div style="width: 100%; background: var(--border-color); height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden;">
+              <div id="overall-progress-bar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">O 완료 서류</span>
+            <span class="summary-value" style="color: var(--primary);" id="count-complete">0개</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">⚡ 검토중 서류</span>
+            <span class="summary-value" style="color: #f59e0b;" id="count-review">0개</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">❌ 미제출 서류</span>
+            <span class="summary-value" style="color: var(--accent);" id="count-pending">0개</span>
+          </div>
+        </div>
+
+        <!-- Spreadsheet Card -->
+        <div class="admin-dashboard-card glass-card" style="margin-top: 0;">
+          <div class="admin-controls" style="margin-bottom: 20px;">
+            <div class="admin-stats">
+              <span class="admin-stat-chip" style="background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.25);">
+                <i class="fa-solid fa-table"></i> Google Sheets Simulator
+              </span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary" id="btn-add-inst-row"><i class="fa-solid fa-plus"></i> 신규 강사 행 추가</button>
+              <button type="button" class="btn btn-secondary" id="btn-reset-inst-demo"><i class="fa-solid fa-rotate-left"></i> 기본 데모 복구</button>
+              <button type="button" class="btn btn-secondary" id="btn-export-docs-csv" style="background: rgba(16, 185, 129, 0.1); color: var(--primary); border-color: rgba(16, 185, 129, 0.2);"><i class="fa-solid fa-file-csv"></i> CSV 내보내기</button>
+            </div>
+          </div>
+
+          <div class="admin-table-wrapper" style="overflow-x: auto;">
+            <table class="admin-table sheet-table">
+              <thead>
+                <tr>
+                  <th class="row-indicator" style="width: 50px;"></th>
+                  <th class="col-indicator" style="width: 60px; text-align: center;">A</th>
+                  <th class="col-indicator" style="width: 230px;">B</th>
+                  <th class="col-indicator" style="width: 140px;">C</th>
+                  <th class="col-indicator" style="width: 220px;">D</th>
+                  <th class="col-indicator" style="width: 150px; text-align: center;">E</th>
+                  <th class="col-indicator" style="width: 110px; text-align: center;">F</th>
+                  <th class="col-indicator" style="width: 110px; text-align: center;">G</th>
+                  <th class="col-indicator" style="width: 110px; text-align: center;">H</th>
+                  <th class="col-indicator" style="width: 110px; text-align: center;">I</th>
+                  <th class="col-indicator" style="width: 110px; text-align: center;">J</th>
+                  <th class="col-indicator" style="width: 70px; text-align: center;"></th>
+                </tr>
+                <tr style="background: rgba(255, 255, 255, 0.03); border-bottom: 2px solid var(--border-color);">
+                  <th class="row-indicator" style="text-align: center; font-weight: bold;">1</th>
+                  <th style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">#</th>
+                  <th>분반 프로그램명</th>
+                  <th>담당 강사명</th>
+                  <th>강사 이메일 주소</th>
+                  <th style="text-align: center;">개인제출폴더</th>
+                  <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">강사서약서</th>
+                  <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">강의계획서</th>
+                  <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">출석부(매주)</th>
+                  <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">최종수업일지</th>
+                  <th style="text-align: center; background: rgba(99, 102, 241, 0.05);">정산 영수증</th>
+                  <th style="text-align: center; color: var(--text-muted);">관리</th>
+                </tr>
+              </thead>
+              <tbody id="spreadsheet-tbody">
+                <!-- Dynamically loaded via Javascript -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 0.8rem; color: var(--text-secondary); padding: 0 8px; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <i class="fa-solid fa-circle-check" style="color: var(--primary); margin-right: 4px;"></i> 시트 실시간 저장 연동 중 (수정사항 즉시 통계 및 DB 반영)
+            </div>
+            <div>
+              행 개수: <span id="row-count-indicator" style="font-weight: bold; color: var(--text-main);">0</span> | sheet_name: <span class="badge" style="background: rgba(255, 255, 255, 0.1); border: 1px solid var(--border-color); color: var(--text-main); font-weight: bold; padding: 2px 6px; border-radius: 4px;">마스터_제출현황판</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulas Helper & Apps Script Generator Grid -->
+        <div class="docs-tools-grid">
+          <!-- Left: 구글 스프레드시트 포뮬러(수식) 팩 -->
+          <div class="admin-dashboard-card glass-card" style="margin-top: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+            <div>
+              <h3 class="section-title" style="font-size: 1.25rem; margin-bottom: 8px;"><i class="fa-solid fa-calculator"></i> 구글 스프레드시트 포뮬러(수식) 팩</h3>
+              <p class="section-desc" style="margin-bottom: 20px;">구글 스프레드시트 요약 영역에 복사해 붙여넣으면 진척도와 통계를 자동 연산해 주는 실무 함수 목록입니다.</p>
+              
+              <div class="formula-list" style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="formula-item" style="background: rgba(255, 255, 255, 0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-secondary);">전체 완료 개수 집계</span>
+                    <button type="button" class="btn-copy-formula" onclick="copyFormula('overall-complete-formula', this)" style="background: none; border: none; color: var(--primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                      <i class="fa-regular fa-copy"></i> 수식 복사
+                    </button>
+                  </div>
+                  <code id="overall-complete-formula" style="font-family: Consolas, monospace; font-size: 0.9rem; color: #34d399; display: block; overflow-x: auto; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px;">=COUNTIF(F2:J100, "O 완료")</code>
+                </div>
+
+                <div class="formula-item" style="background: rgba(255, 255, 255, 0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-secondary);">미제출(누락) 개수 집계</span>
+                    <button type="button" class="btn-copy-formula" onclick="copyFormula('overall-pending-formula', this)" style="background: none; border: none; color: var(--primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                      <i class="fa-regular fa-copy"></i> 수식 복사
+                    </button>
+                  </div>
+                  <code id="overall-pending-formula" style="font-family: Consolas, monospace; font-size: 0.9rem; color: #f43f5e; display: block; overflow-x: auto; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px;">=COUNTIF(F2:J100, "❌ 미제출")</code>
+                </div>
+
+                <div class="formula-item" style="background: rgba(255, 255, 255, 0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-secondary);">특정 강사(예: 2행) 완료 진행률</span>
+                    <button type="button" class="btn-copy-formula" onclick="copyFormula('instructor-rate-formula', this)" style="background: none; border: none; color: var(--primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                      <i class="fa-regular fa-copy"></i> 수식 복사
+                    </button>
+                  </div>
+                  <code id="instructor-rate-formula" style="font-family: Consolas, monospace; font-size: 0.9rem; color: var(--text-primary); display: block; overflow-x: auto; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px;">=COUNTIF(F2:J2, "O 완료") / COUNTA(F2:J2)</code>
+                </div>
+              </div>
+            </div>
+            
+            <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 8px; font-size: 0.8rem; color: var(--primary); line-height: 1.5;">
+              <h4 style="font-weight: bold; margin-bottom: 4px;"><i class="fa-solid fa-circle-info"></i> 조건부 서식 세팅 팁</h4>
+              범위 <code>F2:J100</code> 지정 후 <b>[서식] - [조건부 서식]</b>에서 규칙을 '텍스트가 정확히 일치함'으로 하고, <code>O 완료</code>(초록색), <code>⚡ 검토중</code>(노란색), <code>❌ 미제출</code>(빨간색) 배경색을 매치해 주면 화면과 같은 대시보드가 실제 구글 시트에 완성됩니다.
+            </div>
+          </div>
+
+          <!-- Right: Apps Script Generator -->
+          <div class="admin-dashboard-card glass-card" style="margin-top: 24px;">
+            <h3 class="section-title" style="font-size: 1.25rem; margin-bottom: 8px;"><i class="fa-solid fa-terminal"></i> 원클릭 폴더 자동 생성 스크립트</h3>
+            <p class="section-desc" style="margin-bottom: 16px;">강사를 추가하고 구글 스프레드시트 메뉴에서 실행하면, 이메일 권한 공유 및 드라이브 제출함을 자동 생성해주는 Google Apps Script입니다.</p>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+              <label for="parent-folder-id-input" style="font-size: 0.8rem; font-weight: bold; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+                <i class="fa-regular fa-folder-open" style="color: #f59e0b; margin-right: 4px;"></i> 구글 드라이브 상위 부모 폴더 ID 입력 (선택사항)
+              </label>
+              <input type="text" id="parent-folder-id-input" placeholder="예시: 1A2B3C4D5E6F7G8H9I..." style="width: 100%; font-family: monospace; font-size: 0.8rem; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); outline: none;">
+            </div>
+
+            <div style="position: relative;">
+              <button type="button" class="btn-copy-code" id="btn-copy-apps-script" style="position: absolute; right: 12px; top: 12px; z-index: 10; background: #1f2937; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: var(--transition-fast);">
+                <i class="fa-regular fa-copy"></i> 코드 복사
+              </button>
+              <pre style="background: #0f172a; border-radius: 12px; padding: 16px; overflow-x: auto; height: 260px; border: 1px solid rgba(255, 255, 255, 0.05); font-family: Consolas, monospace; font-size: 0.75rem; color: #34d399; margin: 0; shadow: inset 0 2px 4px rgba(0,0,0,0.6);"><code id="apps-script-code-block"></code></pre>
+            </div>
+          </div>
         </div>
       </div>
     </section>

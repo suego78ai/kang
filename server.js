@@ -7,6 +7,41 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, "db.json");
 const COURSES_FILE = path.join(__dirname, "courses.json");
+const INSTRUCTOR_DOCS_FILE = path.join(__dirname, "instructor_docs.json");
+
+// Default Demo Instructor Documents
+const DEFAULT_INSTRUCTOR_DOCS = [
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출" }
+];
+
+// Helper: Read Instructor Docs DB
+function readInstructorDocsDb() {
+  try {
+    if (!fs.existsSync(INSTRUCTOR_DOCS_FILE)) {
+      fs.writeFileSync(INSTRUCTOR_DOCS_FILE, JSON.stringify(DEFAULT_INSTRUCTOR_DOCS, null, 2), "utf8");
+      return DEFAULT_INSTRUCTOR_DOCS;
+    }
+    const data = fs.readFileSync(INSTRUCTOR_DOCS_FILE, "utf8");
+    return JSON.parse(data || "[]");
+  } catch (err) {
+    console.error("강사 서류 데이터베이스 파일 읽기 에러:", err);
+    return [];
+  }
+}
+
+// Helper: Write Instructor Docs DB
+function writeInstructorDocsDb(data) {
+  try {
+    fs.writeFileSync(INSTRUCTOR_DOCS_FILE, JSON.stringify(data, null, 2), "utf8");
+    return true;
+  } catch (err) {
+    console.error("강사 서류 데이터베이스 파일 쓰기 에러:", err);
+    return false;
+  }
+}
 
 // Middleware
 app.use(cors());
@@ -242,6 +277,36 @@ app.post("/api/courses/reset", adminAuth, (req, res) => {
     res.json({ success: true, message: "교육과정이 기본값으로 초기화되었습니다." });
   } else {
     res.status(500).json({ error: "교육과정 초기화에 실패했습니다." });
+  }
+});
+
+// 9. Get Instructor Documents (Public)
+app.get("/api/instructor-docs", (req, res) => {
+  const docs = readInstructorDocsDb();
+  res.json(docs);
+});
+
+// 10. Save Instructor Documents (Requires Admin Auth)
+app.post("/api/instructor-docs", adminAuth, (req, res) => {
+  const { docs } = req.body;
+  if (!docs || !Array.isArray(docs)) {
+    return res.status(400).json({ error: "올바르지 않은 강사 서류 데이터 형식입니다." });
+  }
+  const success = writeInstructorDocsDb(docs);
+  if (success) {
+    res.json({ success: true, message: "강사 서류 현황이 성공적으로 저장되었습니다." });
+  } else {
+    res.status(500).json({ error: "강사 서류 현황 저장에 실패했습니다." });
+  }
+});
+
+// 11. Reset Instructor Documents (Requires Admin Auth)
+app.post("/api/instructor-docs/reset", adminAuth, (req, res) => {
+  const success = writeInstructorDocsDb(DEFAULT_INSTRUCTOR_DOCS);
+  if (success) {
+    res.json({ success: true, message: "강사 서류 현황이 기본 데모값으로 복구되었습니다.", docs: DEFAULT_INSTRUCTOR_DOCS });
+  } else {
+    res.status(500).json({ error: "강사 서류 현황 복구에 실패했습니다." });
   }
 });
 

@@ -22,3 +22,5 @@ node_modules/
 # Local Database Files
 db.json
 courses.json
+instructor_docs.json
+code_artifact.html

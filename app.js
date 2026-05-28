@@ -97,6 +97,8 @@ let state = {
   searchQuery: "",
   theme: "dark", // 'dark' or 'light'
   applications: [], // localStorage 데이터
+  instructorDocs: [], // 강사 서류 데이터
+  activeAdminTab: "applications", // 현재 활성화된 관리자 서브 탭
   currentApplyCourse: null, // 신청 모달을 띄웠을 때 선택한 코스 정보
   isAdminAuthenticated: sessionStorage.getItem("digitalsaessak-admin-auth") === "true",
   adminToken: sessionStorage.getItem("digitalsaessak-admin-token") || ""
@@ -207,7 +209,16 @@ const DOM = {
   btnDownloadSample: document.getElementById("btn-download-sample"),
   btnResetCourses: document.getElementById("btn-reset-courses"),
   adminCourseTotal: document.getElementById("admin-course-total"),
-  adminCoursesTableBody: document.getElementById("admin-courses-table-body")
+  adminCoursesTableBody: document.getElementById("admin-courses-table-body"),
+
+  // Instructor Document Dashboard & Spreadsheet Simulator Elements
+  spreadsheetTbody: document.getElementById("spreadsheet-tbody"),
+  parentFolderIdInput: document.getElementById("parent-folder-id-input"),
+  btnCopyAppsScript: document.getElementById("btn-copy-apps-script"),
+  appsScriptCodeBlock: document.getElementById("apps-script-code-block"),
+  btnResetInstDemo: document.getElementById("btn-reset-inst-demo"),
+  btnExportDocsCSV: document.getElementById("btn-export-docs-csv"),
+  btnAddInstRow: document.getElementById("btn-add-inst-row")
 };
 
 // ============================================================================
@@ -223,6 +234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateStatusDashboard();
   await checkConnection();
   await initCourses();
+  await initInstructorDocs();
   renderCourses();
 });
 
@@ -409,6 +421,41 @@ const APIService = {
     });
     if (!res.ok) throw new Error("Failed to reset courses");
     return await res.json();
+  },
+
+  async getInstructorDocs() {
+    const res = await fetch(`${API_URL}/instructor-docs`);
+    if (!res.ok) throw new Error("Failed to fetch instructor docs");
+    return await res.json();
+  },
+
+  async saveInstructorDocs(docsArray) {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    if (state.adminToken) {
+      headers["Authorization"] = `Bearer ${state.adminToken}`;
+    }
+    const res = await fetch(`${API_URL}/instructor-docs`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ docs: docsArray })
+    });
+    if (!res.ok) throw new Error("Failed to save instructor docs");
+    return await res.json();
+  },
+
+  async resetInstructorDocs() {
+    const headers = {};
+    if (state.adminToken) {
+      headers["Authorization"] = `Bearer ${state.adminToken}`;
+    }
+    const res = await fetch(`${API_URL}/instructor-docs/reset`, {
+      method: "POST",
+      headers
+    });
+    if (!res.ok) throw new Error("Failed to reset instructor docs");
+    return await res.json();
   }
 };
 
@@ -472,6 +519,430 @@ function updateBadgeCount() {
     DOM.appBadge.style.display = "none";
   }
 }
+
+// ============================================================================
+// 4.5.5 Instructor Documents Master Dashboard & Automation Logic
+// ============================================================================
+
+const DEFAULT_INSTRUCTOR_DOCS_DEMO = [
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출" }
+];
+
+window.switchAdminTab = function(tabName) {
+  state.activeAdminTab = tabName;
+  
+  const tabButtons = document.querySelectorAll(".admin-tab-btn");
+  tabButtons.forEach(btn => {
+    if (btn.id === `admin-tab-btn-${tabName}`) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  const tabContents = document.querySelectorAll(".admin-tab-content");
+  tabContents.forEach(content => {
+    if (content.id === `admin-tab-content-${tabName}`) {
+      content.style.display = "block";
+    } else {
+      content.style.display = "none";
+    }
+  });
+
+  if (tabName === 'instructor-docs') {
+    renderInstructorDocs();
+  } else if (tabName === 'courses') {
+    renderAdminCourses();
+  } else if (tabName === 'applications') {
+    loadAdminDashboard();
+  }
+};
+
+async function initInstructorDocs() {
+  if (isOnline) {
+    try {
+      const data = await APIService.getInstructorDocs();
+      if (data && data.length > 0) {
+        state.instructorDocs = data;
+      } else {
+        state.instructorDocs = [...DEFAULT_INSTRUCTOR_DOCS_DEMO];
+      }
+    } catch (e) {
+      console.error("Failed to load instructor docs from server, trying local storage", e);
+      loadInstructorDocsFromLocalStorage();
+    }
+  } else {
+    loadInstructorDocsFromLocalStorage();
+  }
+}
+
+function loadInstructorDocsFromLocalStorage() {
+  const savedDocs = localStorage.getItem("digitalsaessak-instructor-docs");
+  if (savedDocs) {
+    try {
+      state.instructorDocs = JSON.parse(savedDocs);
+    } catch (e) {
+      state.instructorDocs = [...DEFAULT_INSTRUCTOR_DOCS_DEMO];
+    }
+  } else {
+    state.instructorDocs = [...DEFAULT_INSTRUCTOR_DOCS_DEMO];
+  }
+}
+
+async function saveInstructorDocs() {
+  if (isOnline) {
+    try {
+      await APIService.saveInstructorDocs(state.instructorDocs);
+    } catch (e) {
+      console.error("Failed to save instructor docs to server, saving locally", e);
+      localStorage.setItem("digitalsaessak-instructor-docs", JSON.stringify(state.instructorDocs));
+    }
+  } else {
+    localStorage.setItem("digitalsaessak-instructor-docs", JSON.stringify(state.instructorDocs));
+  }
+}
+
+function renderInstructorDocs() {
+  if (!DOM.spreadsheetTbody) return;
+  
+  DOM.spreadsheetTbody.innerHTML = "";
+  
+  state.instructorDocs.forEach((inst, index) => {
+    const rowNum = index + 2; 
+    const tr = document.createElement("tr");
+    
+    tr.innerHTML = `
+      <td class="row-indicator" style="text-align: center; font-weight: bold;">${rowNum}</td>
+      <td style="text-align: center; font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">${inst.id}</td>
+      <td>
+        <input type="text" value="${inst.class}" onchange="updateDocCell(${inst.id}, 'class', this.value)">
+      </td>
+      <td>
+        <input type="text" value="${inst.name}" onchange="updateDocCell(${inst.id}, 'name', this.value)">
+      </td>
+      <td>
+        <input type="email" value="${inst.email}" onchange="updateDocCell(${inst.id}, 'email', this.value)">
+      </td>
+      <td style="text-align: center;">
+        ${inst.folder ? 
+          `<a href="${inst.folder}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: var(--primary); background: var(--success-bg); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 8px; border-radius: 20px; text-decoration: none;">
+            <i class="fa-solid fa-folder-open"></i> 구글 드라이브
+           </a>` : 
+          `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">폴더 미개설</span>`
+        }
+      </td>
+      <td>
+        <select onchange="updateDocCell(${inst.id}, 'doc1', this.value)" class="status-select ${getStatusClass(inst.doc1)}">
+          <option value="O 완료" ${inst.doc1 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+          <option value="⚡ 검토중" ${inst.doc1 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+          <option value="❌ 미제출" ${inst.doc1 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="updateDocCell(${inst.id}, 'doc2', this.value)" class="status-select ${getStatusClass(inst.doc2)}">
+          <option value="O 완료" ${inst.doc2 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+          <option value="⚡ 검토중" ${inst.doc2 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+          <option value="❌ 미제출" ${inst.doc2 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="updateDocCell(${inst.id}, 'doc3', this.value)" class="status-select ${getStatusClass(inst.doc3)}">
+          <option value="O 완료" ${inst.doc3 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+          <option value="⚡ 검토중" ${inst.doc3 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+          <option value="❌ 미제출" ${inst.doc3 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="updateDocCell(${inst.id}, 'doc4', this.value)" class="status-select ${getStatusClass(inst.doc4)}">
+          <option value="O 완료" ${inst.doc4 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+          <option value="⚡ 검토중" ${inst.doc4 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+          <option value="❌ 미제출" ${inst.doc4 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="updateDocCell(${inst.id}, 'doc5', this.value)" class="status-select ${getStatusClass(inst.doc5)}">
+          <option value="O 완료" ${inst.doc5 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+          <option value="⚡ 검토중" ${inst.doc5 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+          <option value="❌ 미제출" ${inst.doc5 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+        </select>
+      </td>
+      <td style="text-align: center;">
+        <button onclick="removeInstructorDocRow(${inst.id})" style="background: none; border: none; color: var(--accent); cursor: pointer; padding: 4px; border-radius: 4px; transition: var(--transition-fast);" title="행 삭제">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </td>
+    `;
+    DOM.spreadsheetTbody.appendChild(tr);
+  });
+  
+  updateInstructorDocStats();
+  updateAppsScript();
+  document.getElementById("row-count-indicator").innerText = state.instructorDocs.length;
+}
+
+function getStatusClass(val) {
+  switch(val) {
+    case 'O 완료': return 'status-complete';
+    case '⚡ 검토중': return 'status-review';
+    case '❌ 미제출': return 'status-pending';
+    default: return '';
+  }
+}
+
+window.updateDocCell = function(id, key, value) {
+  const index = state.instructorDocs.findIndex(item => item.id === id);
+  if (index !== -1) {
+    state.instructorDocs[index][key] = value;
+    
+    if ((key === 'class' || key === 'name') && state.instructorDocs[index].class && state.instructorDocs[index].name && !state.instructorDocs[index].folder) {
+      state.instructorDocs[index].folder = `https://drive.google.com/drive/folders/simulated_${id}`;
+      renderInstructorDocs();
+    } else if (key === 'email') {
+      renderInstructorDocs();
+    } else {
+      updateInstructorDocStats();
+    }
+    saveInstructorDocs();
+  }
+};
+
+function updateInstructorDocStats() {
+  let totalDocs = state.instructorDocs.length * 5;
+  let completeCount = 0;
+  let reviewCount = 0;
+  let pendingCount = 0;
+  
+  state.instructorDocs.forEach(inst => {
+    [inst.doc1, inst.doc2, inst.doc3, inst.doc4, inst.doc5].forEach(status => {
+      if(status === 'O 완료') completeCount++;
+      else if(status === '⚡ 검토중') reviewCount++;
+      else if(status === '❌ 미제출') pendingCount++;
+    });
+  });
+  
+  const compEl = document.getElementById("count-complete");
+  const revEl = document.getElementById("count-review");
+  const pendEl = document.getElementById("count-pending");
+  const rateEl = document.getElementById("overall-completion-rate");
+  const barEl = document.getElementById("overall-progress-bar");
+  
+  if (compEl) compEl.innerText = completeCount + "개";
+  if (revEl) revEl.innerText = reviewCount + "개";
+  if (pendEl) pendEl.innerText = pendingCount + "개";
+  
+  const rate = totalDocs > 0 ? Math.round((completeCount / totalDocs) * 100) : 0;
+  if (rateEl) rateEl.innerText = rate + "%";
+  if (barEl) barEl.style.width = rate + "%";
+}
+
+window.addInstructorDocRow = function() {
+  const newId = state.instructorDocs.length > 0 ? Math.max(...state.instructorDocs.map(i => i.id)) + 1 : 1;
+  state.instructorDocs.push({
+    id: newId,
+    class: `신규 SW·AI 과정 ${newId}반`,
+    name: "강사명",
+    email: "instructor@inha.ac.kr",
+    folder: `https://drive.google.com/drive/folders/simulated_${newId}`,
+    doc1: "❌ 미제출",
+    doc2: "❌ 미제출",
+    doc3: "❌ 미제출",
+    doc4: "❌ 미제출",
+    doc5: "❌ 미제출"
+  });
+  renderInstructorDocs();
+  saveInstructorDocs();
+  showToast("➕ 새로운 강사 행이 가상 스프레드시트에 추가되었습니다.");
+};
+
+window.removeInstructorDocRow = function(id) {
+  state.instructorDocs = state.instructorDocs.filter(item => item.id !== id);
+  renderInstructorDocs();
+  saveInstructorDocs();
+  showToast("🗑️ 행이 스프레드시트에서 성공적으로 제거되었습니다.");
+};
+
+window.resetInstructorDocsDemo = async function() {
+  if (!confirm("정말로 강사 서류 현황판을 기본 데모 데이터셋으로 복구하시겠습니까? 현재까지의 수정사항은 유실됩니다.")) {
+    return;
+  }
+  
+  if (isOnline) {
+    try {
+      const res = await APIService.resetInstructorDocs();
+      state.instructorDocs = res.docs;
+      showToast("🔄 서버 강사 서류 데이터베이스 복구가 완수되었습니다.");
+    } catch (e) {
+      console.error(e);
+      state.instructorDocs = [...DEFAULT_INSTRUCTOR_DOCS_DEMO];
+      showToast("⚠️ 서버 통신 오류로 인해 로컬에서만 데모로 복구했습니다.");
+    }
+  } else {
+    state.instructorDocs = [...DEFAULT_INSTRUCTOR_DOCS_DEMO];
+    showToast("🔄 로컬 메모리 내 강사 서류 데이터베이스가 복구되었습니다.");
+  }
+  
+  localStorage.removeItem("digitalsaessak-instructor-docs");
+  renderInstructorDocs();
+};
+
+window.downloadDocsCSV = function() {
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+  csvContent += "순번,분반 프로그램명,담당 강사명,강사 이메일 주소,서약서,강의계획서,출석부,최종수업일지,정산 영수증\n";
+  
+  state.instructorDocs.forEach((inst, index) => {
+    let row = [
+      index + 2,
+      `"${inst.class}"`,
+      `"${inst.name}"`,
+      `"${inst.email}"`,
+      `"${inst.doc1}"`,
+      `"${inst.doc2}"`,
+      `"${inst.doc3}"`,
+      `"${inst.doc4}"`,
+      `"${inst.doc5}"`
+    ].join(",");
+    csvContent += row + "\n";
+  });
+  
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "인하대_디지털새싹_강사_제출현황판.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast("📊 CSV 파일 다운로드가 시작되었습니다.");
+};
+
+window.updateAppsScript = function() {
+  if (!DOM.appsScriptCodeBlock) return;
+  const folderIdInput = DOM.parentFolderIdInput ? DOM.parentFolderIdInput.value.trim() : "";
+  const actualFolderID = folderIdInput || "YOUR_GOOGLE_DRIVE_FOLDER_ID_GOES_HERE";
+  
+  const codeText = `/**
+ * 인하대학교 디지털새싹 서류 간소화 및 폴더 생성 자동화 시스템
+ * [가이드] 구글 스프레드시트 -> [확장 프로그램] -> [Apps Script] 코드 교체 후 저장
+ */
+function createInstructorFolders() {
+  // 1. 강사 전용 서류가 자동 저장될 구글 드라이브 상위 부모 폴더 ID
+  var PARENT_FOLDER_ID = "${actualFolderID}"; 
+  
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var startRow = 2; // 데이터 시작 행 (헤더를 제외한 2행부터)
+  var numRows = sheet.getLastRow() - 1;
+  
+  if (numRows <= 0) {
+    SpreadsheetApp.getUi().alert("❌ 처리할 데이터 행이 존재하지 않습니다.");
+    return;
+  }
+  
+  // A열(분반)부터 D열(이메일)까지의 범위 로딩
+  var dataRange = sheet.getRange(startRow, 1, numRows, 4);
+  var data = dataRange.getValues();
+  var parentFolder;
+  
+  try {
+    parentFolder = DriveApp.getFolderById(PARENT_FOLDER_ID);
+  } catch (e) {
+    SpreadsheetApp.getUi().alert("⚠️ 지정된 구글 부모 폴더 ID를 발견할 수 없거나 권한이 없습니다.");
+    return;
+  }
+  
+  var createdCount = 0;
+  
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var className = row[1];       // B열: 분반 프로그램명
+    var instructorName = row[2];  // C열: 담당 강사명
+    var email = row[3];           // D열: 강사 이메일 주소
+    var folderCell = sheet.getRange(startRow + i, 5); // E열: 개인제출폴더 주소 기록 셀
+    
+    // 분반명과 강사명이 있고, 아직 개인 드라이브 폴더가 개설되지 않았을 때만 트리거
+    if (className && instructorName && !folderCell.getValue()) {
+      try {
+        // [자동생성 1] 강사용 폴더 이름 네이밍 표준 생성
+        var folderName = "[" + className + "_" + instructorName + "] 서류제출함";
+        var newFolder = parentFolder.createFolder(folderName);
+        
+        // [자동생성 2] 이메일 주소가 있으면 강사에게 편집자(Upload) 권한 자동 지정
+        if (email && email.indexOf("@") !== -1) {
+          newFolder.addEditor(email);
+        }
+        
+        // [자동생성 3] 구글 시트 E열에 아름다운 하이퍼링크 문장으로 자동 변환 기입
+        var richText = SpreadsheetApp.newRichTextValue()
+          .setText("📁 드라이브 이동")
+          .setLinkUrl(newFolder.getUrl())
+          .build();
+        folderCell.setRichTextValue(richText);
+        
+        // [자동생성 4] 우측 서류 상태 기본값 '❌ 미제출' 자동 세팅
+        for (var col = 6; col <= 10; col++) {
+          var statusCell = sheet.getRange(startRow + i, col);
+          if (!statusCell.getValue()) {
+            statusCell.setValue("❌ 미제출");
+          }
+        }
+        
+        createdCount++;
+      } catch (err) {
+        Logger.log("⚠️ (" + instructorName + ") 폴더 처리 중 오류 발생: " + err.toString());
+      }
+    }
+  }
+  
+  SpreadsheetApp.getUi().alert("🎉 총 " + createdCount + "명의 강사용 폴더 개설 및 계정 공유 작업이 모두 완수되었습니다!");
+}
+
+/**
+ * 구글 스프레드시트가 처음 로드될 때 상단 조작 퀵메뉴를 바에 추가하는 트리거
+ */
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu("📁 스마트 폴더 자동화")
+    .addItem("🚀 신규 강사 폴더 자동 생성 및 이메일 공유", "createInstructorFolders")
+    .addToUi();
+}`;
+
+  DOM.appsScriptCodeBlock.innerText = codeText;
+};
+
+window.copyAppsScriptCode = function() {
+  if (!DOM.appsScriptCodeBlock) return;
+  navigator.clipboard.writeText(DOM.appsScriptCodeBlock.innerText).then(() => {
+    const btn = document.getElementById("btn-copy-apps-script");
+    if (btn) {
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = `<i class="fa-solid fa-check"></i> 복사 완료!`;
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+      }, 1500);
+    }
+    showToast("📋 Apps Script 자동화 코드가 클립보드에 복사되었습니다.");
+  }).catch(err => {
+    console.error("클립보드 복사 오류:", err);
+  });
+};
+
+window.copyFormula = function(formulaId, btn) {
+  const codeEl = document.getElementById(formulaId);
+  if (!codeEl) return;
+  navigator.clipboard.writeText(codeEl.innerText).then(() => {
+    if (btn) {
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = `<i class="fa-solid fa-check"></i> 복사 완료!`;
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+      }, 1500);
+    }
+    showToast("📋 포뮬러 수식이 클립보드에 복사되었습니다. 구글 시트에 붙여넣으세요.");
+  }).catch(err => {
+    console.error("클립보드 복사 오류:", err);
+  });
+};
 
 // --------------------------------------------------------------------------
 // 4.6 Excel Import & Course Management Logic
@@ -1565,6 +2036,23 @@ function setupEventListeners() {
       }
     });
   }
+
+  // 강사 서류 자동화 대시보드 리스너
+  if (DOM.btnAddInstRow) {
+    DOM.btnAddInstRow.addEventListener("click", addInstructorDocRow);
+  }
+  if (DOM.btnResetInstDemo) {
+    DOM.btnResetInstDemo.addEventListener("click", resetInstructorDocsDemo);
+  }
+  if (DOM.btnExportDocsCSV) {
+    DOM.btnExportDocsCSV.addEventListener("click", downloadDocsCSV);
+  }
+  if (DOM.btnCopyAppsScript) {
+    DOM.btnCopyAppsScript.addEventListener("click", copyAppsScriptCode);
+  }
+  if (DOM.parentFolderIdInput) {
+    DOM.parentFolderIdInput.addEventListener("input", updateAppsScript);
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -1684,8 +2172,7 @@ function switchTab(targetTab) {
     DOM.navMenu.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     DOM.navLinkAdmin.classList.add('active');
     
-    loadAdminDashboard();
-    renderAdminCourses();
+    switchAdminTab(state.activeAdminTab);
   } else {
     DOM.catalogSection.style.display = 'block';
     DOM.statusSection.style.display = 'block';
