@@ -782,9 +782,10 @@ function updateInstructorDocStats() {
   
   state.instructorDocs.forEach(inst => {
     [inst.doc1, inst.doc2, inst.doc3, inst.doc4, inst.doc5].forEach(status => {
-      if(status === 'O 완료') completeCount++;
-      else if(status === '⚡ 검토중') reviewCount++;
-      else if(status === '❌ 미제출') pendingCount++;
+      const isFile = status && status !== "O 완료" && status !== "⚡ 검토중" && status !== "❌ 미제출";
+      if (status === 'O 완료' || isFile) completeCount++;
+      else if (status === '⚡ 검토중') reviewCount++;
+      else if (status === '❌ 미제출') pendingCount++;
     });
   });
   
