@@ -111,16 +111,13 @@
       <!-- DB Search / Lookup Box -->
       <div class="status-search-card glass-card" style="margin-bottom: 24px;">
         <h3 class="status-search-title"><i class="fa-solid fa-magnifying-glass"></i> 제출한 서류 현황 조회하기</h3>
-        <p class="status-search-desc">서류 제출 완료 시 발급된 고유 제출번호와 강사 이름, 이메일 주소를 모두 정확히 입력해야 본인 확인 후 제출 내역 조회가 가능합니다.</p>
+        <p class="status-search-desc">제출하신 강사 이름과 휴대폰 번호를 모두 정확히 입력해야 본인 확인 후 제출 내역 조회가 가능합니다.</p>
         <div class="status-search-form" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
           <div class="search-input-group" style="flex: 1; min-width: 150px;">
             <i class="fa-regular fa-user input-icon"></i>
             <input type="text" id="lookup-student-name" placeholder="강사 이름 (예: 홍길동)">
           </div>
-          <div class="search-input-group" style="flex: 1; min-width: 200px;">
-            <i class="fa-regular fa-envelope input-icon"></i>
-            <input type="email" id="lookup-guardian-phone" placeholder="이메일 주소 (예: instructor@inha.ac.kr)">
-          </div>
+
           <div class="search-input-group" style="flex: 1; min-width: 180px;">
             <i class="fa-solid fa-phone input-icon"></i>
             <input type="tel" id="lookup-doc-id" placeholder="휴대폰 번호 (예: 010-1234-5678)" maxlength="13">
@@ -155,7 +152,7 @@
           <div class="empty-state">
             <i class="fa-regular fa-clipboard empty-icon"></i>
             <p>조회된 제출 서류가 없습니다.</p>
-            <p class="empty-sub">본인의 강사 이름과 이메일 주소로 검색하여 제출 내역을 조회해 보세요!</p>
+            <p class="empty-sub">본인의 강사 이름과 휴대폰 번호로 검색하여 제출 내역을 조회해 보세요!</p>
           </div>
         </div>
       </div>

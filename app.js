@@ -1802,7 +1802,7 @@ function updateStatusDashboard() {
       <div class="empty-state">
         <i class="fa-regular fa-clipboard empty-icon"></i>
         <p>조회된 제출 서류가 없습니다.</p>
-        <p class="empty-sub">본인의 강사 이름과 이메일 주소로 검색하여 제출 내역을 조회해 보세요!</p>
+        <p class="empty-sub">본인의 강사 이름과 휴대폰 번호로 검색하여 제출 내역을 조회해 보세요!</p>
       </div>
     `;
     return;
@@ -2258,26 +2258,21 @@ function setupEventListeners() {
 // --------------------------------------------------------------------------
 async function handleLookup() {
   const nameInput = document.getElementById("lookup-student-name");
-  const emailInput = document.getElementById("lookup-guardian-phone");
+
   const docIdInput = document.getElementById("lookup-doc-id"); // 이 필드는 이제 휴대폰 번호를 담고 있습니다.
   const resultsInfo = document.getElementById("lookup-results-info");
   
-  if (!nameInput || !emailInput || !docIdInput || !resultsInfo) return;
+  if (!nameInput || !docIdInput || !resultsInfo) return;
   
   const instructorName = nameInput.value.trim();
-  const instructorEmail = emailInput.value.trim();
   let rawPhone = docIdInput.value.trim();
   
-  if (!instructorName || !instructorEmail || !rawPhone) {
-    showToast("⚠️ 강사 이름, 이메일 주소, 휴대폰 번호를 모두 입력해주세요.");
+  if (!instructorName || !rawPhone) {
+    showToast("⚠️ 강사 이름, 휴대폰 번호를 모두 입력해주세요.");
     return;
   }
   
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (!emailRegex.test(instructorEmail)) {
-    showToast("⚠️ 올바른 이메일 주소 형식으로 입력해주세요.");
-    return;
-  }
+
   
   const phoneRegex = /^01[016789]-?\d{3,4}-?\d{4}$/;
   if (!phoneRegex.test(rawPhone)) {
@@ -2293,7 +2288,6 @@ async function handleLookup() {
     const cleanDbPhone = (d.phone || "").replace(/-/g, "");
     const cleanSearchPhone = rawPhone.replace(/-/g, "");
     return d.name === instructorName && 
-           d.email === instructorEmail && 
            cleanDbPhone === cleanSearchPhone;
   };
   
