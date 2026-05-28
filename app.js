@@ -2258,15 +2258,17 @@ function setupEventListeners() {
 async function handleLookup() {
   const nameInput = document.getElementById("lookup-student-name");
   const emailInput = document.getElementById("lookup-guardian-phone");
+  const docIdInput = document.getElementById("lookup-doc-id");
   const resultsInfo = document.getElementById("lookup-results-info");
   
-  if (!nameInput || !emailInput || !resultsInfo) return;
+  if (!nameInput || !emailInput || !docIdInput || !resultsInfo) return;
   
   const instructorName = nameInput.value.trim();
   const instructorEmail = emailInput.value.trim();
+  let rawDocId = docIdInput.value.trim();
   
-  if (!instructorName || !instructorEmail) {
-    showToast("⚠️ 강사 이름과 이메일 주소를 모두 입력해주세요.");
+  if (!instructorName || !instructorEmail || !rawDocId) {
+    showToast("⚠️ 강사 이름, 이메일 주소, 제출번호를 모두 입력해주세요.");
     return;
   }
   
@@ -2276,21 +2278,38 @@ async function handleLookup() {
     return;
   }
   
+  // 파싱: DOC-123456 -> 123456
+  let cleanDocId = rawDocId;
+  if (cleanDocId.toUpperCase().startsWith("DOC-")) {
+    cleanDocId = cleanDocId.substring(4);
+  }
+  const targetDocId = Number(cleanDocId);
+  if (isNaN(targetDocId)) {
+    showToast("⚠️ 제출번호 형식이 올바르지 않습니다. (예: DOC-123456)");
+    return;
+  }
+  
   resultsInfo.style.display = "flex";
   resultsInfo.className = "lookup-results-info";
   resultsInfo.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 데이터베이스 검색 중...`;
+  
+  const filterRecord = (d) => {
+    return d.name === instructorName && 
+           d.email === instructorEmail && 
+           Number(d.id) === targetDocId;
+  };
   
   let matched = [];
   if (isOnline) {
     try {
       const allDocs = await APIService.getInstructorDocs();
-      matched = allDocs.filter(d => d.name === instructorName && d.email === instructorEmail);
+      matched = allDocs.filter(filterRecord);
     } catch (err) {
       console.error("Failed to lookup instructor docs on server, trying local cache:", err);
-      matched = state.instructorDocs.filter(d => d.name === instructorName && d.email === instructorEmail);
+      matched = state.instructorDocs.filter(filterRecord);
     }
   } else {
-    matched = state.instructorDocs.filter(d => d.name === instructorName && d.email === instructorEmail);
+    matched = state.instructorDocs.filter(filterRecord);
   }
   
   if (matched && matched.length > 0) {
@@ -2307,11 +2326,11 @@ async function handleLookup() {
     updateStatusDashboard();
     
     resultsInfo.className = "lookup-results-info success";
-    resultsInfo.innerHTML = `<i class="fa-solid fa-circle-check"></i> 성공: ${matched.length}건의 제출 내역을 동기화했습니다.`;
-    showToast(`🎉 제출 내역 ${matched.length}건을 동기화했습니다!`);
+    resultsInfo.innerHTML = `<i class="fa-solid fa-circle-check"></i> 성공: 본인 인증 및 내역 동기화에 성공했습니다.`;
+    showToast(`🎉 제출 내역이 정상적으로 조회되었습니다!`);
   } else {
     resultsInfo.className = "lookup-results-info error";
-    resultsInfo.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 입력한 정보와 일치하는 제출 서류 기록을 찾을 수 없습니다.`;
+    resultsInfo.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 입력한 정보와 일치하는 제출 서류 기록을 찾을 수 없습니다. 제출번호를 다시 확인하세요.`;
   }
 }
 

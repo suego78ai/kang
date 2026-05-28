@@ -111,17 +111,21 @@
       <!-- DB Search / Lookup Box -->
       <div class="status-search-card glass-card" style="margin-bottom: 24px;">
         <h3 class="status-search-title"><i class="fa-solid fa-magnifying-glass"></i> 제출한 서류 현황 조회하기</h3>
-        <p class="status-search-desc">서류 제출 시 입력한 강사 이름과 이메일 주소를 정확히 입력하시면 데이터베이스에서 제출 내역을 조회해 내역에 동적 추가합니다.</p>
-        <div class="status-search-form">
-          <div class="search-input-group">
+        <p class="status-search-desc">서류 제출 완료 시 발급된 고유 제출번호와 강사 이름, 이메일 주소를 모두 정확히 입력해야 본인 확인 후 제출 내역 조회가 가능합니다.</p>
+        <div class="status-search-form" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <div class="search-input-group" style="flex: 1; min-width: 150px;">
             <i class="fa-regular fa-user input-icon"></i>
             <input type="text" id="lookup-student-name" placeholder="강사 이름 (예: 홍길동)">
           </div>
-          <div class="search-input-group">
+          <div class="search-input-group" style="flex: 1; min-width: 200px;">
             <i class="fa-regular fa-envelope input-icon"></i>
             <input type="email" id="lookup-guardian-phone" placeholder="이메일 주소 (예: instructor@inha.ac.kr)">
           </div>
-          <button type="button" class="btn btn-primary" id="btn-lookup-apps">내역 조회 <i class="fa-solid fa-chevron-right"></i></button>
+          <div class="search-input-group" style="flex: 1; min-width: 180px;">
+            <i class="fa-solid fa-key input-icon"></i>
+            <input type="text" id="lookup-doc-id" placeholder="제출번호 (예: DOC-123456)">
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-lookup-apps" style="flex-shrink: 0;">내역 조회 <i class="fa-solid fa-chevron-right"></i></button>
         </div>
         <div id="lookup-results-info" class="lookup-results-info" style="display: none;">
           <!-- Loaded via JS -->
