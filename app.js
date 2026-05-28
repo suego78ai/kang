@@ -1768,7 +1768,7 @@ async function handleFormSubmit(e) {
   updateInstructorDocStats();
   updateStatusDashboard();
   
-  showToast("🎉 강사 성과 서류 제출이 성공적으로 처리되었습니다!");
+  showToast("🎉 강사 프로그램 제출이 성공적으로 처리되었습니다!");
 }
 
 // ============================================================================
@@ -2109,7 +2109,7 @@ function setupEventListeners() {
     }
   });
   
-  // 메인 히어로 배너: 성과 서류 제출하기 버튼 동작
+  // 메인 히어로 배너: 프로그램 제출하기 버튼 동작
   if (DOM.btnHeroSubmitDocs) {
     DOM.btnHeroSubmitDocs.addEventListener("click", () => {
       resetForm();
