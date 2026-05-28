@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인하대학교 디지털새싹 서류 마스터 대시보드 빌더</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        inha: {
+                            navy: '#1e3a8a',
+                            blue: '#1e40af',
+                            cyan: '#06b6d4',
+                            light: '#f1f5f9',
+                            dark: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                        mono: ['Consolas', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Spreadsheet Grid Styles */
+        .sheet-grid td, .sheet-grid th {
+            border: 1px solid #e2e8f0;
+            font-size: 13.5px;
+        }
+        .row-header {
+            background-color: #f8fafc;
+            color: #64748b;
+            text-align: center;
+            font-weight: 600;
+            user-select: none;
+            width: 40px;
+        }
+        .col-header {
+            background-color: #f8fafc;
+            color: #475569;
+            text-align: center;
+            font-weight: 600;
+            height: 28px;
+            user-select: none;
+        }
+        
+        /* Dropdown status badges */
+        .status-select {
+            appearance: none;
+            outline: none;
+            background-position: right 8px center;
+            background-repeat: no-repeat;
+            background-size: 10px;
+            padding-right: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .status-complete {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0 !important;
+            font-weight: bold;
+        }
+        .status-review {
+            background-color: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a !important;
+            font-weight: bold;
+        }
+        .status-pending {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- TOP HEADER BAR -->
+    <header class="bg-gradient-to-r from-inha-navy via-inha-blue to-cyan-700 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm border border-white/20">
+                        <i class="fa-solid fa-file-excel text-2xl text-cyan-300"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2">
+                            인하대 디지털새싹 서류 마스터 대시보드 빌더
+                        </h1>
+                        <p class="text-xs text-slate-200 mt-0.5">구글 스프레드시트 기반의 실시간 서류 자동화 현황판 & 시뮬레이터</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
+                        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-1.5 animate-pulse"></span>
+                        실무 즉시 적용 가이드
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
+        
+        <!-- 실시간 통계 요약 (대시보드 위젯) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- 1. 전체 제출률 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">전체 서류 완료율</span>
+                    <span id="overall-completion-rate" class="text-3xl font-extrabold text-inha-navy mt-1 block">0%</span>
+                    <div class="w-24 bg-slate-100 rounded-full h-1.5 mt-2">
+                        <div id="overall-progress-bar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600">
+                    <i class="fa-solid fa-chart-pie text-2xl"></i>
+                </div>
+            </div>
+            
+            <!-- 2. 완료 개수 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">완료 처리된 서류</span>
+                    <span id="count-complete" class="text-3xl font-extrabold text-emerald-600 mt-1 block">0개</span>
+                    <span class="text-xs text-slate-400 mt-1 block">확인 및 검증 완료</span>
+                </div>
+                <div class="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600">
+                    <i class="fa-solid fa-circle-check text-2xl"></i>
+                </div>
+            </div>
+
+            <!-- 3. 검토중 개수 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">검토가 필요한 서류</span>
+                    <span id="count-review" class="text-3xl font-extrabold text-amber-600 mt-1 block">0개</span>
+                    <span class="text-xs text-slate-400 mt-1 block">재검토 및 보완 요망</span>
+                </div>
+                <div class="bg-amber-50 p-3.5 rounded-2xl text-amber-500">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+            </div>
+
+            <!-- 4. 미제출 개수 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">누락 서류 (미제출)</span>
+                    <span id="count-pending" class="text-3xl font-extrabold text-rose-600 mt-1 block">0개</span>
+                    <span class="text-xs text-rose-500 font-medium mt-1 block flex items-center gap-1">
+                        <i class="fa-solid fa-bell animate-bounce"></i> 리마인드 알림 대상
+                    </span>
+                </div>
+                <div class="bg-rose-50 p-3.5 rounded-2xl text-rose-500">
+                    <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPREADSHEET CONTAINER -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Sheets Toolbar Mockup -->
+            <div class="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-emerald-600 text-white font-bold text-xs px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-table"></i> Google Sheets Simulator
+                    </div>
+                    <div class="h-4 w-[1px] bg-slate-300"></div>
+                    <button onclick="addInstructorRow()" class="bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold py-1.5 px-3 border border-slate-300 rounded-lg shadow-sm transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus text-emerald-600"></i> 신규 강사 행 추가
+                    </button>
+                    <button onclick="resetToDemoData()" class="bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold py-1.5 px-3 border border-slate-300 rounded-lg shadow-sm transition flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> 기본 데모 복구
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportToCSV()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-emerald-200 shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-csv"></i> CSV로 현재 시트 내보내기
+                    </button>
+                </div>
+            </div>
+
+            <!-- Spreadsheet Grid -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse sheet-grid">
+                    <thead>
+                        <!-- Column Alphabetic Indicators -->
+                        <tr>
+                            <th class="row-header"></th>
+                            <th class="col-header w-12">A</th>
+                            <th class="col-header w-44">B</th>
+                            <th class="col-header w-32">C</th>
+                            <th class="col-header w-48">D</th>
+                            <th class="col-header w-24">E</th>
+                            <th class="col-header w-28">F</th>
+                            <th class="col-header w-28">G</th>
+                            <th class="col-header w-28">H</th>
+                            <th class="col-header w-28">I</th>
+                            <th class="col-header w-28">J</th>
+                            <th class="col-header w-12"></th>
+                        </tr>
+                        <!-- Logical Headers -->
+                        <tr class="bg-slate-100/70 text-slate-600 font-bold text-xs uppercase tracking-wider">
+                            <th class="row-header">1</th>
+                            <th class="p-2 text-center text-slate-500"><i class="fa-solid fa-hashtag"></i></th>
+                            <th class="p-2 border-r">분반 프로그램명</th>
+                            <th class="p-2 border-r">담당 강사명</th>
+                            <th class="p-2 border-r">강사 이메일 주소</th>
+                            <th class="p-2 border-r text-center">개인제출폴더</th>
+                            <th class="p-2 border-r text-center bg-blue-50/50">강사서약서</th>
+                            <th class="p-2 border-r text-center bg-blue-50/50">강의계획서</th>
+                            <th class="p-2 border-r text-center bg-blue-50/50">출석부(매주)</th>
+                            <th class="p-2 border-r text-center bg-blue-50/50">최종수업일지</th>
+                            <th class="p-2 border-r text-center bg-blue-50/50">정산 영수증</th>
+                            <th class="p-2 text-center text-slate-400">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="spreadsheet-tbody" class="divide-y divide-slate-200">
+                        <!-- Simulated Rows Dynamic Content -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Spreadsheet Bottom Status Bar -->
+            <div class="bg-slate-50 p-3 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <span><i class="fa-solid fa-circle text-emerald-500 mr-1"></i> 시트 실시간 연동 중 (수정사항 즉시 통계 반영)</span>
+                    <span>•</span>
+                    <span>행 개수: <span id="row-count-indicator" class="font-bold text-slate-700">0</span></span>
+                </div>
+                <div class="font-medium">
+                    sheet_name: <span class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700 font-bold">마스터_제출현황판</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPREADSHEET INSTRUCTION AND CODE AUTO-GENERATION -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Left Side: Interactive Formulas Helper -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-calculator text-cyan-600"></i> 구글 스프레드시트 포뮬러(수식) 팩
+                    </h3>
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                        실제 구글 스프레드시트의 요약 영역에 그대로 복사해서 붙여넣을 수 있는 핵심 함수 목록입니다. 실시간 진척도와 통계를 자동으로 연산해 줍니다.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <!-- Formula 1 -->
+                        <div class="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-xs font-bold text-slate-500">전체 완료 개수 집계</span>
+                                <button onclick="copyToClipboard('=COUNTIF(F2:J100, &quot;O 완료&quot;)', 'copy-btn-f1')" id="copy-btn-f1" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium flex items-center gap-1">
+                                    <i class="fa-regular fa-copy"></i> 수식 복사
+                                </button>
+                            </div>
+                            <code class="block text-sm font-mono text-emerald-700 bg-emerald-50/50 p-2 rounded border border-emerald-100">=COUNTIF(F2:J100, "O 완료")</code>
+                        </div>
+
+                        <!-- Formula 2 -->
+                        <div class="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-xs font-bold text-slate-500">미제출(누락) 개수 집계</span>
+                                <button onclick="copyToClipboard('=COUNTIF(F2:J100, &quot;❌ 미제출&quot;)', 'copy-btn-f2')" id="copy-btn-f2" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium flex items-center gap-1">
+                                    <i class="fa-regular fa-copy"></i> 수식 복사
+                                </button>
+                            </div>
+                            <code class="block text-sm font-mono text-rose-700 bg-rose-50/50 p-2 rounded border border-rose-100">=COUNTIF(F2:J100, "❌ 미제출")</code>
+                        </div>
+
+                        <!-- Formula 3 -->
+                        <div class="border border-slate-100 rounded-xl p-3.5 bg-slate-50/50">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-xs font-bold text-slate-500">특정 강사(예: 2행 홍길동)의 완료 진행률</span>
+                                <button onclick="copyToClipboard('=COUNTIF(F2:J2, &quot;O 완료&quot;) / COUNTA(F2:J2)', 'copy-btn-f3')" id="copy-btn-f3" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium flex items-center gap-1">
+                                    <i class="fa-regular fa-copy"></i> 수식 복사
+                                </button>
+                            </div>
+                            <code class="block text-sm font-mono text-slate-700 bg-slate-200/50 p-2 rounded border border-slate-300">=COUNTIF(F2:J2, "O 완료") / COUNTA(F2:J2)</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-slate-100 bg-cyan-50/40 p-4 rounded-xl border border-cyan-100">
+                    <h4 class="text-xs font-bold text-cyan-800 flex items-center gap-1 mb-1">
+                        <i class="fa-solid fa-circle-info"></i> 구글 조건부 서식 세팅 팁
+                    </h4>
+                    <p class="text-[12.5px] text-cyan-700 leading-relaxed">
+                        범위 <code>F2:J100</code>을 선택한 후, 메뉴의 <b>[서식] - [조건부 서식]</b>에서 형식 규칙을 '텍스트가 정확하게 일치함'으로 설정하고, <code>O 완료</code>(초록), <code>⚡ 검토중</code>(노랑), <code>❌ 미제출</code>(빨강) 배경을 각각 매치해 주면 화면과 같은 대시보드가 실제 구글 시트에 완성됩니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Side: Smart Apps Script Generator -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-terminal text-cyan-600"></i> 원클릭 폴더 자동 생성 스크립트
+                        </h3>
+                        <p class="text-sm text-slate-600 mt-1">
+                            강사를 추가하고 실행하면, 구글 드라이브에 자동으로 개별 서류 제출함을 개설하고 공유하는 구글 Apps Script입니다.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Input Box for Folder ID -->
+                <div class="mb-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">
+                        <i class="fa-regular fa-folder-open text-amber-500"></i> 구글 드라이브 상위 부모 폴더 ID 입력 (선택사항)
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" id="parent-folder-input" oninput="updateScriptCode()" placeholder="예시: 1A2B3C4D5E6F7G8H9I0J..." class="flex-grow bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        <span class="text-[10px] text-slate-400 self-center hidden sm:inline-block">ID 변경 시 실시간 반영</span>
+                    </div>
+                </div>
+
+                <!-- Copy Code Display -->
+                <div class="relative">
+                    <div class="absolute right-3 top-3 z-10">
+                        <button onclick="copyAppsScriptCode()" id="copy-script-btn" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-1 px-3 rounded border border-slate-700 flex items-center gap-1 shadow-sm transition">
+                            <i class="fa-regular fa-copy"></i> 코드 복사
+                        </button>
+                    </div>
+                    <pre class="bg-slate-900 rounded-xl p-4 overflow-x-auto text-[12.5px] text-emerald-400 font-mono shadow-inner h-[284px] border border-slate-800"><code id="code-block-display"><!-- JS code will inject here --></code></pre>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER INFO -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
+            <p class="font-semibold text-slate-700">인하대학교 디지털새싹 서류 간소화 및 스마트 워크아웃 프로젝트</p>
+            <p>본 페이지는 실제 구글 스프레드시트와의 완벽한 1:1 사용 경험 매칭 및 교육용 시뮬레이션을 제공하기 위해 임베디드로 설계되었습니다.</p>
+        </div>
+    </footer>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Initial Mock Data
+        let instructors = [
+            { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출" },
+            { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료" },
+            { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료" },
+            { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출" }
+        ];
+
+        // Primary initialization function
+        window.onload = function() {
+            renderSpreadsheet();
+            updateScriptCode();
+        };
+
+        // Render Simulated Spreadsheet
+        function renderSpreadsheet() {
+            const tbody = document.getElementById("spreadsheet-tbody");
+            tbody.innerHTML = "";
+            
+            instructors.forEach((inst, index) => {
+                const rowNum = index + 2; // Rows start at header 1, data starts at row 2
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50/80 transition-colors";
+                
+                tr.innerHTML = `
+                    <td class="row-header">${rowNum}</td>
+                    <td class="p-2 text-center text-xs text-slate-400 font-bold font-mono">${inst.id}</td>
+                    <td class="p-2 border-r">
+                        <input type="text" value="${inst.class}" onchange="updateData(${inst.id}, 'class', this.value)" class="w-full bg-transparent focus:bg-white border-0 focus:ring-1 focus:ring-cyan-500 px-1 py-0.5 rounded text-slate-800 font-medium">
+                    </td>
+                    <td class="p-2 border-r">
+                        <input type="text" value="${inst.name}" onchange="updateData(${inst.id}, 'name', this.value)" class="w-full bg-transparent focus:bg-white border-0 focus:ring-1 focus:ring-cyan-500 px-1 py-0.5 rounded text-slate-800 font-semibold">
+                    </td>
+                    <td class="p-2 border-r">
+                        <input type="email" value="${inst.email}" onchange="updateData(${inst.id}, 'email', this.value)" class="w-full bg-transparent focus:bg-white border-0 focus:ring-1 focus:ring-cyan-500 px-1 py-0.5 rounded font-mono text-xs text-slate-600">
+                    </td>
+                    <td class="p-2 border-r text-center">
+                        ${inst.folder ? 
+                            `<a href="${inst.folder}" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-600 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-2 py-1 rounded-full transition shadow-sm">
+                                <i class="fa-solid fa-folder-open"></i> 구글 드라이브
+                             </a>` : 
+                            `<span class="text-xs text-slate-400 italic">폴더 미개설</span>`
+                        }
+                    </td>
+                    <td class="p-2 border-r text-center bg-blue-50/10">
+                        <select onchange="updateData(${inst.id}, 'doc1', this.value)" class="status-select w-full px-2 py-1 rounded text-xs text-center border ${getStatusClass(inst.doc1)}">
+                            <option value="O 완료" ${inst.doc1 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+                            <option value="⚡ 검토중" ${inst.doc1 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+                            <option value="❌ 미제출" ${inst.doc1 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+                        </select>
+                    </td>
+                    <td class="p-2 border-r text-center bg-blue-50/10">
+                        <select onchange="updateData(${inst.id}, 'doc2', this.value)" class="status-select w-full px-2 py-1 rounded text-xs text-center border ${getStatusClass(inst.doc2)}">
+                            <option value="O 완료" ${inst.doc2 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+                            <option value="⚡ 검토중" ${inst.doc2 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+                            <option value="❌ 미제출" ${inst.doc2 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+                        </select>
+                    </td>
+                    <td class="p-2 border-r text-center bg-blue-50/10">
+                        <select onchange="updateData(${inst.id}, 'doc3', this.value)" class="status-select w-full px-2 py-1 rounded text-xs text-center border ${getStatusClass(inst.doc3)}">
+                            <option value="O 완료" ${inst.doc3 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+                            <option value="⚡ 검토중" ${inst.doc3 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+                            <option value="❌ 미제출" ${inst.doc3 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+                        </select>
+                    </td>
+                    <td class="p-2 border-r text-center bg-blue-50/10">
+                        <select onchange="updateData(${inst.id}, 'doc4', this.value)" class="status-select w-full px-2 py-1 rounded text-xs text-center border ${getStatusClass(inst.doc4)}">
+                            <option value="O 완료" ${inst.doc4 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+                            <option value="⚡ 검토중" ${inst.doc4 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+                            <option value="❌ 미제출" ${inst.doc4 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+                        </select>
+                    </td>
+                    <td class="p-2 border-r text-center bg-blue-50/10">
+                        <select onchange="updateData(${inst.id}, 'doc5', this.value)" class="status-select w-full px-2 py-1 rounded text-xs text-center border ${getStatusClass(inst.doc5)}">
+                            <option value="O 완료" ${inst.doc5 === 'O 완료' ? 'selected' : ''}>O 완료</option>
+                            <option value="⚡ 검토중" ${inst.doc5 === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
+                            <option value="❌ 미제출" ${inst.doc5 === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-center">
+                        <button onclick="removeInstructorRow(${inst.id})" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded transition" title="행 삭제">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            updateStats();
+            document.getElementById("row-count-indicator").innerText = instructors.length;
+        }
+
+        // Return class based on value
+        function getStatusClass(val) {
+            switch(val) {
+                case 'O 완료': return 'status-complete';
+                case '⚡ 검토중': return 'status-review';
+                case '❌ 미제출': return 'status-pending';
+                default: return 'border-slate-300 bg-white';
+            }
+        }
+
+        // Update single cell data change
+        function updateData(id, key, value) {
+            const index = instructors.findIndex(item => item.id === id);
+            if(index !== -1) {
+                instructors[index][key] = value;
+                
+                // If adding email or folder changes dynamically, redraw to update folder icons
+                if(key === 'email' || key === 'class' || key === 'name') {
+                    // Automatically generate a simulated folder link if name and class are present
+                    if(instructors[index].class && instructors[index].name && !instructors[index].folder) {
+                        instructors[index].folder = `https://drive.google.com/drive/folders/simulated_${instructors[index].id}`;
+                    }
+                    renderSpreadsheet();
+                } else {
+                    updateStats();
+                    // Just refresh individual select element styles to prevent full re-render flickering
+                    renderSpreadsheet();
+                }
+                
+                showToast("데이터가 자동 저장 및 통계에 반영되었습니다.", "success");
+            }
+        }
+
+        // Add a blank row
+        function addInstructorRow() {
+            const newId = instructors.length > 0 ? Math.max(...instructors.map(i => i.id)) + 1 : 1;
+            instructors.push({
+                id: newId,
+                class: `미정 스마트 과정 ${newId}반`,
+                name: "강사명",
+                email: "instructor@inha.ac.kr",
+                folder: `https://drive.google.com/drive/folders/simulated_${newId}`,
+                doc1: "❌ 미제출",
+                doc2: "❌ 미제출",
+                doc3: "❌ 미제출",
+                doc4: "❌ 미제출",
+                doc5: "❌ 미제출"
+            });
+            renderSpreadsheet();
+            showToast("새로운 강사 행이 하단에 성공적으로 가상 생성되었습니다.", "info");
+        }
+
+        // Remove row
+        function removeInstructorRow(id) {
+            instructors = instructors.filter(item => item.id !== id);
+            renderSpreadsheet();
+            showToast("행을 시트에서 제거했습니다.", "info");
+        }
+
+        // Reset to initial demo data
+        function resetToDemoData() {
+            instructors = [
+                { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출" },
+                { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료" },
+                { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료" },
+                { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출" }
+            ];
+            renderSpreadsheet();
+            showToast("기본 테스트 데이터셋으로 시트를 정상 복구했습니다.", "info");
+        }
+
+        // Update overall top metrics card
+        function updateStats() {
+            let totalDocs = instructors.length * 5;
+            let completeCount = 0;
+            let reviewCount = 0;
+            let pendingCount = 0;
+            
+            instructors.forEach(inst => {
+                [inst.doc1, inst.doc2, inst.doc3, inst.doc4, inst.doc5].forEach(status => {
+                    if(status === 'O 완료') completeCount++;
+                    else if(status === '⚡ 검토중') reviewCount++;
+                    else if(status === '❌ 미제출') pendingCount++;
+                });
+            });
+            
+            document.getElementById("count-complete").innerText = completeCount + "개";
+            document.getElementById("count-review").innerText = reviewCount + "개";
+            document.getElementById("count-pending").innerText = pendingCount + "개";
+            
+            const rate = totalDocs > 0 ? Math.round((completeCount / totalDocs) * 100) : 0;
+            document.getElementById("overall-completion-rate").innerText = rate + "%";
+            document.getElementById("overall-progress-bar").style.width = rate + "%";
+        }
+
+        // Export data to simulated CSV (File download)
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "순번,분반 프로그램명,담당 강사명,강사 이메일 주소,서약서,강의계획서,출석부,최종수업일지,정산 영수증\n";
+            
+            instructors.forEach(inst => {
+                let row = [
+                    inst.id,
+                    `"${inst.class}"`,
+                    `"${inst.name}"`,
+                    `"${inst.email}"`,
+                    `"${inst.doc1}"`,
+                    `"${inst.doc2}"`,
+                    `"${inst.doc3}"`,
+                    `"${inst.doc4}"`,
+                    `"${inst.doc5}"`
+                ].join(",");
+                csvContent += row + "\n";
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "디지털새싹_강사_제출현황_대시보드.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("CSV 파일 다운로드가 시작되었습니다.", "success");
+        }
+
+        // Copy plain text to clipboard
+        function copyToClipboard(text, elementId) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            
+            const btn = document.getElementById(elementId);
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-check"></i> 복사됨!`;
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+            }, 1500);
+            
+            showToast("수식이 클립보드에 정상 복사되었습니다. 구글 시트에 붙여넣으세요.", "success");
+        }
+
+        // Dynamic code block generation for Apps Script
+        function updateScriptCode() {
+            const folderIdInput = document.getElementById("parent-folder-input").value.trim();
+            const actualFolderID = folderIdInput || "YOUR_GOOGLE_DRIVE_FOLDER_ID_GOES_HERE";
+            
+            const codeText = `/**
+ * 인하대학교 디지털새싹 서류 간소화 및 폴더 생성 자동화 시스템
+ * [가이드] 구글 스프레드시트 -> [확장 프로그램] -> [Apps Script] 코드 교체 후 저장
+ */
+function createInstructorFolders() {
+  // 1. 강사 전용 서류가 자동 저장될 구글 드라이브 상위 부모 폴더 ID
+  var PARENT_FOLDER_ID = "${actualFolderID}"; 
+  
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var startRow = 2; // 데이터 시작 행 (헤더를 제외한 2행부터)
+  var numRows = sheet.getLastRow() - 1;
+  
+  if (numRows <= 0) {
+    SpreadsheetApp.getUi().alert("❌ 처리할 데이터 행이 존재하지 않습니다.");
+    return;
+  }
+  
+  // A열(분반)부터 D열(이메일)까지의 범위 로딩
+  var dataRange = sheet.getRange(startRow, 1, numRows, 4);
+  var data = dataRange.getValues();
+  var parentFolder;
+  
+  try {
+    parentFolder = DriveApp.getFolderById(PARENT_FOLDER_ID);
+  } catch (e) {
+    SpreadsheetApp.getUi().alert("⚠️ 지정된 구글 부모 폴더 ID를 발견할 수 없거나 권한이 없습니다.");
+    return;
+  }
+  
+  var createdCount = 0;
+  
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var className = row[1];       // B열: 분반 프로그램명
+    var instructorName = row[2];  // C열: 담당 강사명
+    var email = row[3];           // D열: 강사 이메일 주소
+    var folderCell = sheet.getRange(startRow + i, 5); // E열: 개인제출폴더 주소 기록 셀
+    
+    // 분반명과 강사명이 있고, 아직 개인 드라이브 폴더가 개설되지 않았을 때만 트리거
+    if (className && instructorName && !folderCell.getValue()) {
+      try {
+        // [자동생성 1] 강사용 폴더 이름 네이밍 표준 생성
+        var folderName = "[" + className + "_" + instructorName + "] 서류제출함";
+        var newFolder = parentFolder.createFolder(folderName);
+        
+        // [자동생성 2] 이메일 주소가 있으면 강사에게 편집자(Upload) 권한 자동 지정
+        if (email && email.indexOf("@") !== -1) {
+          newFolder.addEditor(email);
+        }
+        
+        // [자동생성 3] 구글 시트 E열에 아름다운 하이퍼링크 문장으로 자동 변환 기입
+        var richText = SpreadsheetApp.newRichTextValue()
+          .setText("📁 드라이브 이동")
+          .setLinkUrl(newFolder.getUrl())
+          .build();
+        folderCell.setRichTextValue(richText);
+        
+        // [자동생성 4] 우측 서류 상태 기본값 '❌ 미제출' 자동 세팅
+        for (var col = 6; col <= 10; col++) {
+          var statusCell = sheet.getRange(startRow + i, col);
+          if (!statusCell.getValue()) {
+            statusCell.setValue("❌ 미제출");
+          }
+        }
+        
+        createdCount++;
+      } catch (err) {
+        Logger.log("⚠️ (" + instructorName + ") 폴더 처리 중 오류 발생: " + err.toString());
+      }
+    }
+  }
+  
+  SpreadsheetApp.getUi().alert("🎉 총 " + createdCount + "명의 강사용 폴더 개설 및 계정 공유 작업이 모두 완수되었습니다!");
+}
+
+/**
+ * 구글 스프레드시트가 처음 로드될 때 상단 조작 퀵메뉴를 바에 추가하는 트리거
+ */
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu("📁 스마트 폴더 자동화")
+    .addItem("🚀 신규 강사 폴더 자동 생성 및 이메일 공유", "createInstructorFolders")
+    .addToUi();
+}`;
+            
+            document.getElementById("code-block-display").innerText = codeText;
+        }
+
+        // Copy apps script code block
+        function copyAppsScriptCode() {
+            const codeText = document.getElementById("code-block-display").innerText;
+            const tempInput = document.createElement("textarea");
+            tempInput.value = codeText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            
+            const btn = document.getElementById("copy-script-btn");
+            btn.innerHTML = `<i class="fa-solid fa-check"></i> 코드 복사 완료!`;
+            setTimeout(() => {
+                btn.innerHTML = `<i class="fa-regular fa-copy"></i> 코드 복사`;
+            }, 1500);
+            
+            showToast("자동화 앱스 스크립트가 클립보드에 복사되었습니다.", "success");
+        }
+
+        // Dynamic Toast Notifications
+        function showToast(message, type = "info") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold bg-white transform translate-y-2 opacity-0 transition-all duration-300 pointer-events-auto max-w-sm";
+            
+            let icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>';
+            if (type === 'success') {
+                icon = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+                toast.classList.add("border-emerald-100", "text-emerald-800");
+            } else if (type === 'info') {
+                icon = '<i class="fa-solid fa-circle-info text-cyan-500"></i>';
+                toast.classList.add("border-cyan-100", "text-cyan-800");
+            }
+            
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            // Animation Trigger
+            setTimeout(() => {
+                toast.classList.remove("translate-y-2", "opacity-0");
+            }, 50);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add("translate-y-2", "opacity-0");
+                setTimeout(() => {
+                    container.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
