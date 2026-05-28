@@ -552,10 +552,10 @@ function updateBadgeCount() {
 // ============================================================================
 
 const DEFAULT_INSTRUCTOR_DOCS_DEMO = [
-  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", phone: "010-1111-2222", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
-  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", phone: "010-3333-4444", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
-  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", phone: "010-5555-6666", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
-  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", phone: "010-7777-8888", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", phone: "010-1111-2222", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "완료", doc2: "완료", doc3: "검토중", doc4: "미제출", doc5: "미제출", status: "검토중" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", phone: "010-3333-4444", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "완료", doc2: "완료", doc3: "완료", doc4: "완료", doc5: "완료", status: "제출 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", phone: "010-5555-6666", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "완료", doc2: "검토중", doc3: "완료", doc4: "미제출", doc5: "완료", status: "검토중" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", phone: "010-7777-8888", folder: "", doc1: "미제출", doc2: "미제출", doc3: "미제출", doc4: "미제출", doc5: "미제출", status: "검토중" }
 ];
 
 window.switchAdminTab = function(tabName) {
@@ -639,12 +639,12 @@ function renderInstructorDocs() {
   
   // 헬퍼: 셀 및 개별 파일 다운로드 링크 & 미리보기 트리거 렌더링
   const renderDocCellHtml = (inst, fieldName, instFieldVal) => {
-    const isFile = instFieldVal && instFieldVal !== "O 완료" && instFieldVal !== "⚡ 검토중" && instFieldVal !== "❌ 미제출";
+    const isFile = instFieldVal && instFieldVal !== "완료" && instFieldVal !== "검토중" && instFieldVal !== "미제출";
     let selectVal = instFieldVal;
     let fileLinkHtml = "";
     
     if (isFile) {
-      selectVal = "O 완료";
+      selectVal = "완료";
       const fileUrl = `http://localhost:3000${inst.folder}/${instFieldVal}`;
       const cleanFileName = instFieldVal.substring(instFieldVal.indexOf("_") + 1);
       fileLinkHtml = `
@@ -661,9 +661,9 @@ function renderInstructorDocs() {
     
     return `
       <select onchange="updateDocCell(${inst.id}, '${fieldName}', this.value)" class="status-select ${getStatusClass(selectVal)}">
-        <option value="O 완료" ${selectVal === 'O 완료' ? 'selected' : ''}>O 완료</option>
-        <option value="⚡ 검토중" ${selectVal === '⚡ 검토중' ? 'selected' : ''}>⚡ 검토중</option>
-        <option value="❌ 미제출" ${selectVal === '❌ 미제출' ? 'selected' : ''}>❌ 미제출</option>
+        <option value="완료" ${selectVal === '완료' ? 'selected' : ''}>완료</option>
+        <option value="검토중" ${selectVal === '검토중' ? 'selected' : ''}>검토중</option>
+        <option value="미제출" ${selectVal === '미제출' ? 'selected' : ''}>미제출</option>
       </select>
       ${fileLinkHtml}
     `;
@@ -746,11 +746,10 @@ function renderInstructorDocs() {
 
 function getStatusClass(val) {
   switch(val) {
-    case 'O 완료':
+    case '완료':
     case '제출 완료': return 'status-complete';
-    case '⚡ 검토중':
     case '검토중': return 'status-review';
-    case '❌ 미제출':
+    case '미제출':
     case '반려': return 'status-pending';
     default: return '';
   }
@@ -782,10 +781,10 @@ function updateInstructorDocStats() {
   
   state.instructorDocs.forEach(inst => {
     [inst.doc1, inst.doc2, inst.doc3, inst.doc4, inst.doc5].forEach(status => {
-      const isFile = status && status !== "O 완료" && status !== "⚡ 검토중" && status !== "❌ 미제출";
-      if (status === 'O 완료' || isFile) completeCount++;
-      else if (status === '⚡ 검토중') reviewCount++;
-      else if (status === '❌ 미제출') pendingCount++;
+      const isFile = status && status !== "완료" && status !== "검토중" && status !== "미제출";
+      if (status === '완료' || isFile) completeCount++;
+      else if (status === '검토중') reviewCount++;
+      else if (status === '미제출') pendingCount++;
     });
   });
   
@@ -812,11 +811,11 @@ window.addInstructorDocRow = function() {
     name: "강사명",
     email: "instructor@inha.ac.kr",
     folder: `https://drive.google.com/drive/folders/simulated_${newId}`,
-    doc1: "❌ 미제출",
-    doc2: "❌ 미제출",
-    doc3: "❌ 미제출",
-    doc4: "❌ 미제출",
-    doc5: "❌ 미제출"
+    doc1: "미제출",
+    doc2: "미제출",
+    doc3: "미제출",
+    doc4: "미제출",
+    doc5: "미제출"
   });
   renderInstructorDocs();
   saveInstructorDocs();
@@ -1786,7 +1785,7 @@ function updateStatusDashboard() {
   
   filteredDocs.forEach(inst => {
     [inst.doc1, inst.doc2, inst.doc3, inst.doc4, inst.doc5].forEach(status => {
-      if (status && status !== "❌ 미제출") {
+      if (status && status !== "미제출") {
         completeCount++;
       } else {
         pendingCount++;
@@ -1845,11 +1844,11 @@ function updateStatusDashboard() {
               <span><i class="fa-regular fa-user"></i> 담당 강사: <strong>${doc.name}</strong> (${doc.email})</span>
               <span><i class="fa-regular fa-clock"></i> 최종 제출일: ${doc.date || '-'}</span>
               <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.75rem;">
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">서약서: ${doc.doc1.startsWith("docFile1") || doc.doc1 !== "❌ 미제출" && doc.doc1 !== "O 완료" && doc.doc1 !== "⚡ 검토중" ? `📎 완료` : doc.doc1}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">계획서: ${doc.doc2.startsWith("docFile2") || doc.doc2 !== "❌ 미제출" && doc.doc2 !== "O 완료" && doc.doc2 !== "⚡ 검토중" ? `📎 완료` : doc.doc2}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">출석부: ${doc.doc3.startsWith("docFile3") || doc.doc3 !== "❌ 미제출" && doc.doc3 !== "O 완료" && doc.doc3 !== "⚡ 검토중" ? `📎 완료` : doc.doc3}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">수업일지: ${doc.doc4.startsWith("docFile4") || doc.doc4 !== "❌ 미제출" && doc.doc4 !== "O 완료" && doc.doc4 !== "⚡ 검토중" ? `📎 완료` : doc.doc4}</span>
-                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">영수증: ${doc.doc5.startsWith("docFile5") || doc.doc5 !== "❌ 미제출" && doc.doc5 !== "O 완료" && doc.doc5 !== "⚡ 검토중" ? `📎 완료` : doc.doc5}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">서약서: ${doc.doc1.startsWith("docFile1") || doc.doc1 !== "미제출" && doc.doc1 !== "완료" && doc.doc1 !== "검토중" ? `📎 완료` : doc.doc1}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">계획서: ${doc.doc2.startsWith("docFile2") || doc.doc2 !== "미제출" && doc.doc2 !== "완료" && doc.doc2 !== "검토중" ? `📎 완료` : doc.doc2}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">출석부: ${doc.doc3.startsWith("docFile3") || doc.doc3 !== "미제출" && doc.doc3 !== "완료" && doc.doc3 !== "검토중" ? `📎 완료` : doc.doc3}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">수업일지: ${doc.doc4.startsWith("docFile4") || doc.doc4 !== "미제출" && doc.doc4 !== "완료" && doc.doc4 !== "검토중" ? `📎 완료` : doc.doc4}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">영수증: ${doc.doc5.startsWith("docFile5") || doc.doc5 !== "미제출" && doc.doc5 !== "완료" && doc.doc5 !== "검토중" ? `📎 완료` : doc.doc5}</span>
               </div>
             </div>
           </div>

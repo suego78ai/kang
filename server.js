@@ -13,10 +13,10 @@ const INSTRUCTOR_DOCS_FILE = path.join(__dirname, "instructor_docs.json");
 
 // Default Demo Instructor Documents
 const DEFAULT_INSTRUCTOR_DOCS = [
-  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", phone: "010-1111-2222", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "O 완료", doc2: "O 완료", doc3: "⚡ 검토중", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" },
-  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", phone: "010-3333-4444", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "O 완료", doc2: "O 완료", doc3: "O 완료", doc4: "O 완료", doc5: "O 완료", status: "제출 완료" },
-  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", phone: "010-5555-6666", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "O 완료", doc2: "⚡ 검토중", doc3: "O 완료", doc4: "❌ 미제출", doc5: "O 완료", status: "검토중" },
-  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", phone: "010-7777-8888", folder: "", doc1: "❌ 미제출", doc2: "❌ 미제출", doc3: "❌ 미제출", doc4: "❌ 미제출", doc5: "❌ 미제출", status: "검토중" }
+  { id: 1, class: "AI 기초 엔트리 코딩 A반", name: "홍길동", email: "gildong.hong@gmail.com", phone: "010-1111-2222", folder: "https://drive.google.com/drive/folders/demo_hong", doc1: "완료", doc2: "완료", doc3: "검토중", doc4: "미제출", doc5: "미제출", status: "검토중" },
+  { id: 2, class: "파이썬 데이터 분석 B반", name: "성춘향", email: "chunhyang.seong@gmail.com", phone: "010-3333-4444", folder: "https://drive.google.com/drive/folders/demo_seong", doc1: "완료", doc2: "완료", doc3: "완료", doc4: "완료", doc5: "완료", status: "제출 완료" },
+  { id: 3, class: "아두이노 피지컬 IoT C반", name: "이순신", email: "soonshin.lee@gmail.com", phone: "010-5555-6666", folder: "https://drive.google.com/drive/folders/demo_lee", doc1: "완료", doc2: "검토중", doc3: "완료", doc4: "미제출", doc5: "완료", status: "검토중" },
+  { id: 4, class: "메타버스 제페토 빌더 D반", name: "임꺽정", email: "kkukjung.lim@gmail.com", phone: "010-7777-8888", folder: "", doc1: "미제출", doc2: "미제출", doc3: "미제출", doc4: "미제출", doc5: "미제출", status: "검토중" }
 ];
 
 // Helper: Read Instructor Docs DB
@@ -439,7 +439,7 @@ app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
       zipSuffix = "행정서류";
       // doc1, doc2 파일 필터링 추가
       [record.doc1, record.doc2].forEach(fileVal => {
-        const isFile = fileVal && fileVal !== "O 완료" && fileVal !== "⚡ 검토중" && fileVal !== "❌ 미제출";
+        const isFile = fileVal && fileVal !== "완료" && fileVal !== "검토중" && fileVal !== "미제출";
         if (isFile) {
           const filePath = path.join(targetDir, fileVal);
           if (fs.existsSync(filePath)) {
@@ -451,7 +451,7 @@ app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
       zipSuffix = "진행서류";
       // doc3, doc4, doc5 파일 필터링 추가
       [record.doc3, record.doc4, record.doc5].forEach(fileVal => {
-        const isFile = fileVal && fileVal !== "O 완료" && fileVal !== "⚡ 검토중" && fileVal !== "❌ 미제출";
+        const isFile = fileVal && fileVal !== "완료" && fileVal !== "검토중" && fileVal !== "미제출";
         if (isFile) {
           const filePath = path.join(targetDir, fileVal);
           if (fs.existsSync(filePath)) {
