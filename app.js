@@ -2121,8 +2121,8 @@ function handleAdminLogout() {
   sessionStorage.removeItem("digitalsaessak-admin-auth");
   sessionStorage.removeItem("digitalsaessak-admin-token");
   showToast("🔒 성공적으로 로그아웃되었습니다.");
-  switchTab("catalog");
-  window.scrollTo({ top: DOM.catalogSection.offsetTop - 80, behavior: 'smooth' });
+  switchTab("status");
+  window.scrollTo({ top: DOM.statusSection.offsetTop - 80, behavior: 'smooth' });
 }
 
 function resetSearchAndFilters() {
@@ -2137,7 +2137,7 @@ function resetSearchAndFilters() {
   state.activeCategory = "all";
   
   DOM.navMenu.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
-  document.getElementById("nav-link-catalog").classList.add("active");
+  document.getElementById("nav-link-status").classList.add("active");
   
   renderCourses();
 }
@@ -2174,16 +2174,12 @@ function switchTab(targetTab) {
     
     switchAdminTab(state.activeAdminTab);
   } else {
-    DOM.catalogSection.style.display = 'block';
+    DOM.catalogSection.style.display = 'none'; // Always hide catalog
     DOM.statusSection.style.display = 'block';
     DOM.adminSection.style.display = 'none';
     
     DOM.navMenu.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    if (targetTab === 'catalog') {
-      DOM.navLinkCatalog.classList.add('active');
-    } else if (targetTab === 'status') {
-      DOM.navLinkStatus.classList.add('active');
-    }
+    DOM.navLinkStatus.classList.add('active'); // Set status nav link active
   }
 }
 

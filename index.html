@@ -30,8 +30,8 @@
       </a>
       
       <nav class="nav-menu" id="nav-menu">
-        <a href="#catalog-section" class="nav-link active" id="nav-link-catalog">교육과정 탐색</a>
-        <a href="#status-section" class="nav-link" id="nav-link-status">나의 신청 현황 <span class="badge" id="app-badge">0</span></a>
+        <a href="#catalog-section" class="nav-link" id="nav-link-catalog" style="display: none !important;">교육과정 탐색</a>
+        <a href="#status-section" class="nav-link active" id="nav-link-status">나의 신청 현황 <span class="badge" id="app-badge">0</span></a>
         <a href="#admin-section" class="nav-link" id="nav-link-admin"><i class="fa-solid fa-user-shield"></i> 관리자 모드</a>
       </nav>
       
@@ -54,8 +54,8 @@
       <h1 class="hero-title">새싹이 자라 나무가 되듯,<br><span class="gradient-text">디지털새싹 SW·AI 캠프</span></h1>
       <p class="hero-subtitle">초·중·고등학생을 위한 전액 무료 SW·AI 교육 프로그램! 쉽고 재미있게 배우며 미래를 향한 디지털 역량을 키워보세요.</p>
       <div class="hero-buttons">
-        <a href="#catalog-section" class="btn btn-primary btn-glow">교육과정 둘러보기</a>
-        <a href="#status-section" class="btn btn-secondary">내 신청내역 조회</a>
+        <a href="#catalog-section" class="btn btn-primary btn-glow" style="display: none !important;">교육과정 둘러보기</a>
+        <a href="#status-section" class="btn btn-primary btn-glow">내 신청내역 조회</a>
       </div>
     </div>
   </section>
@@ -64,7 +64,7 @@
   <main class="content-wrapper">
     
     <!-- Course Catalog Section -->
-    <section id="catalog-section" class="catalog-section">
+    <section id="catalog-section" class="catalog-section" style="display: none !important;">
       <div class="section-header">
         <h2 class="section-title">🖥️ 교육과정 탐색</h2>
         <p class="section-desc">현재 모집 중인 디지털새싹 SW·AI 캠프입니다. 참가 대상별 교육과정을 둘러보세요.</p>
@@ -169,7 +169,7 @@
         <button type="button" class="admin-tab-btn active" id="admin-tab-btn-applications" onclick="switchAdminTab('applications')">
           <i class="fa-solid fa-clipboard-list"></i> 신청서 접수 관리
         </button>
-        <button type="button" class="admin-tab-btn" id="admin-tab-btn-courses" onclick="switchAdminTab('courses')">
+        <button type="button" class="admin-tab-btn" id="admin-tab-btn-courses" onclick="switchAdminTab('courses')" style="display: none !important;">
           <i class="fa-solid fa-graduation-cap"></i> 교육과정 등록 관리
         </button>
         <button type="button" class="admin-tab-btn" id="admin-tab-btn-instructor-docs" onclick="switchAdminTab('instructor-docs')">
