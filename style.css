@@ -2195,3 +2195,73 @@ a {
   100% { transform: scale(1); opacity: 0.8; }
 }
 
+
+/* --- Tailwind Admin Dashboard Custom Styles --- */
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Spreadsheet Grid Styles */
+.sheet-grid td, .sheet-grid th {
+    border: 1px solid #e2e8f0;
+    font-size: 13.5px;
+}
+.row-header {
+    background-color: #f8fafc;
+    color: #64748b;
+    text-align: center;
+    font-weight: 600;
+    user-select: none;
+    width: 40px;
+}
+.col-header {
+    background-color: #f8fafc;
+    color: #475569;
+    text-align: center;
+    font-weight: 600;
+    height: 28px;
+    user-select: none;
+}
+
+/* Dropdown status badges */
+.status-select {
+    appearance: none;
+    outline: none;
+    background-position: right 8px center;
+    background-repeat: no-repeat;
+    background-size: 10px;
+    padding-right: 20px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.status-complete {
+    background-color: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0 !important;
+    font-weight: bold;
+}
+.status-review {
+    background-color: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a !important;
+    font-weight: bold;
+}
+.status-pending {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca !important;
+    font-weight: bold;
+}

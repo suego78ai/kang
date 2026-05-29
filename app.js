@@ -649,7 +649,7 @@ function renderInstructorDocs() {
       const cleanFileName = instFieldVal.substring(instFieldVal.indexOf("_") + 1);
       fileLinkHtml = `
         <div style="margin-top: 4px; font-size: 0.7rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; display: flex; align-items: center; gap: 4px;">
-          <a href="${fileUrl}" target="_blank" style="color: var(--primary); text-decoration: underline;" title="${cleanFileName} 다운로드">
+          <a href="${fileUrl}" target="_blank" style="color: #06b6d4; text-decoration: underline;" title="${cleanFileName} 다운로드">
             <i class="fa-solid fa-paperclip"></i> ${cleanFileName}
           </a>
           <a href="#" onclick="event.preventDefault(); openPreviewDoc(${inst.id}, '${fieldName}', '${instFieldVal}')" style="color: #fbbf24; text-decoration: none; padding: 2px;" title="미리보기">
@@ -660,7 +660,7 @@ function renderInstructorDocs() {
     }
     
     return `
-      <select onchange="updateDocCell(${inst.id}, '${fieldName}', this.value)" class="status-select ${getStatusClass(selectVal)}">
+      <select onchange="updateDocCell(${inst.id}, '${fieldName}', this.value)" class="status-select w-full px-2 py-1 rounded text-xs text-center border ${getStatusClass(selectVal)}">
         <option value="완료" ${selectVal === '완료' ? 'selected' : ''}>완료</option>
         <option value="검토중" ${selectVal === '검토중' ? 'selected' : ''}>검토중</option>
         <option value="미제출" ${selectVal === '미제출' ? 'selected' : ''}>미제출</option>
@@ -672,68 +672,62 @@ function renderInstructorDocs() {
   state.instructorDocs.forEach((inst, index) => {
     const rowNum = index + 2; 
     const tr = document.createElement("tr");
+    tr.className = "hover:bg-slate-50/80 transition-colors";
     
     const isLocal = inst.folder && !inst.folder.startsWith("http");
     const folderCellHtml = isLocal ? 
       `<div style="display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 2px;">
-        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=admin" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: bold; color: #fff; background: var(--secondary); border: 1px solid rgba(99, 102, 241, 0.2); padding: 3px 6px; border-radius: 4px; text-decoration: none; width: 100%; text-align: center;" title="행정서약서, 강의계획서 일괄 ZIP 다운로드">
+        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=admin" target="_blank" class="inline-flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-slate-600 hover:bg-slate-700 px-2 py-1 rounded transition w-full text-center shadow-sm" title="행정서약서, 강의계획서 일괄 ZIP 다운로드">
           <i class="fa-solid fa-file-zipper"></i> 행정 ZIP
         </a>
-        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=process" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: bold; color: #fff; background: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); padding: 3px 6px; border-radius: 4px; text-decoration: none; width: 100%; text-align: center;" title="출석부, 최종수업일지, 정산영수증 일괄 ZIP 다운로드">
+        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=process" target="_blank" class="inline-flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-amber-500 hover:bg-amber-600 px-2 py-1 rounded transition w-full text-center shadow-sm" title="출석부, 최종수업일지, 정산영수증 일괄 ZIP 다운로드">
           <i class="fa-solid fa-file-zipper"></i> 진행 ZIP
         </a>
-        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=all" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.65rem; font-weight: bold; color: #fff; background: var(--primary); border: 1px solid rgba(16, 185, 129, 0.2); padding: 3px 6px; border-radius: 4px; text-decoration: none; width: 100%; text-align: center;" title="제출된 전체 서류 일괄 ZIP 다운로드">
+        <a href="http://localhost:3000/api/instructor-docs/download-zip/${inst.id}?type=all" target="_blank" class="inline-flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-2 py-1 rounded transition w-full text-center shadow-sm" title="제출된 전체 서류 일괄 ZIP 다운로드">
           <i class="fa-solid fa-file-zipper"></i> 전체 ZIP
         </a>
        </div>` : 
       (inst.folder ? 
-        `<a href="${inst.folder}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: bold; color: var(--primary); background: var(--success-bg); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 8px; border-radius: 20px; text-decoration: none;">
+        `<a href="${inst.folder}" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-600 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-2 py-1 rounded-full transition shadow-sm">
           <i class="fa-solid fa-folder-open"></i> 구글 드라이브
          </a>` : 
-        `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">폴더 미개설</span>`
+        `<span class="text-xs text-slate-400 italic">폴더 미개설</span>`
       );
       
     tr.innerHTML = `
-      <td class="row-indicator" style="text-align: center; font-weight: bold;">${rowNum}</td>
-      <td style="text-align: center; font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">${inst.id}</td>
-      <td>
-        <input type="text" value="${inst.class}" onchange="updateDocCell(${inst.id}, 'class', this.value)">
+      <td class="row-header">${rowNum}</td>
+      <td class="p-2 text-center text-xs text-slate-400 font-bold font-mono">${inst.id}</td>
+      <td class="p-2 border-r">
+          <input type="text" value="${inst.class}" onchange="updateDocCell(${inst.id}, 'class', this.value)" class="w-full bg-transparent focus:bg-white border-0 focus:ring-1 focus:ring-cyan-500 px-1 py-0.5 rounded text-slate-800 font-medium">
       </td>
-      <td>
-        <input type="text" value="${inst.name}" onchange="updateDocCell(${inst.id}, 'name', this.value)">
+      <td class="p-2 border-r">
+          <input type="text" value="${inst.name}" onchange="updateDocCell(${inst.id}, 'name', this.value)" class="w-full bg-transparent focus:bg-white border-0 focus:ring-1 focus:ring-cyan-500 px-1 py-0.5 rounded text-slate-800 font-semibold">
       </td>
-      <td>
-        <input type="email" value="${inst.email}" onchange="updateDocCell(${inst.id}, 'email', this.value)">
+      <td class="p-2 border-r">
+          <input type="email" value="${inst.email}" onchange="updateDocCell(${inst.id}, 'email', this.value)" class="w-full bg-transparent focus:bg-white border-0 focus:ring-1 focus:ring-cyan-500 px-1 py-0.5 rounded font-mono text-xs text-slate-600">
       </td>
-      <td style="text-align: center;">
-        ${folderCellHtml}
+      <td class="p-2 border-r text-center">
+          ${folderCellHtml}
       </td>
-      <td>
-        ${renderDocCellHtml(inst, 'doc1', inst.doc1)}
+      <td class="p-2 border-r text-center bg-blue-50/10">
+          ${renderDocCellHtml(inst, 'doc1', inst.doc1)}
       </td>
-      <td>
-        ${renderDocCellHtml(inst, 'doc2', inst.doc2)}
+      <td class="p-2 border-r text-center bg-blue-50/10">
+          ${renderDocCellHtml(inst, 'doc2', inst.doc2)}
       </td>
-      <td>
-        ${renderDocCellHtml(inst, 'doc3', inst.doc3)}
+      <td class="p-2 border-r text-center bg-blue-50/10">
+          ${renderDocCellHtml(inst, 'doc3', inst.doc3)}
       </td>
-      <td>
-        ${renderDocCellHtml(inst, 'doc4', inst.doc4)}
+      <td class="p-2 border-r text-center bg-blue-50/10">
+          ${renderDocCellHtml(inst, 'doc4', inst.doc4)}
       </td>
-      <td>
-        ${renderDocCellHtml(inst, 'doc5', inst.doc5)}
+      <td class="p-2 border-r text-center bg-blue-50/10">
+          ${renderDocCellHtml(inst, 'doc5', inst.doc5)}
       </td>
-      <td>
-        <select onchange="updateDocCell(${inst.id}, 'status', this.value)" class="status-select ${getStatusClass(inst.status || '검토중')}">
-          <option value="검토중" ${inst.status === '검토중' || !inst.status ? 'selected' : ''}>검토중</option>
-          <option value="제출 완료" ${inst.status === '제출 완료' ? 'selected' : ''}>제출 완료</option>
-          <option value="반려" ${inst.status === '반려' ? 'selected' : ''}>반려</option>
-        </select>
-      </td>
-      <td style="text-align: center;">
-        <button onclick="removeInstructorDocRow(${inst.id})" style="background: none; border: none; color: var(--accent); cursor: pointer; padding: 4px; border-radius: 4px; transition: var(--transition-fast);" title="행 삭제">
-          <i class="fa-regular fa-trash-can"></i>
-        </button>
+      <td class="p-2 text-center">
+          <button onclick="removeInstructorDocRow(${inst.id})" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded transition" title="행 삭제">
+              <i class="fa-regular fa-trash-can"></i>
+          </button>
       </td>
     `;
     DOM.spreadsheetTbody.appendChild(tr);
