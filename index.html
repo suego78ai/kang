@@ -182,6 +182,190 @@
 
     <!-- Admin Dashboard Section -->
     <section id="admin-section" class="admin-section" style="display: none; padding-top: 100px; margin-top: -60px; margin-bottom: 80px;">
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="디지털새싹 SW·AI 캠프에서 초·중·고등학생을 위한 맞춤형 SW·AI 교육 프로그램을 확인하고 간편하게 신청하세요. 실시간 신청 현황 관리 기능도 제공합니다.">
+  <title>디지털새싹 SW·AI 캠프 | 교육과정 신청 및 관리</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Tailwind CSS & Config -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: {
+        preflight: false,
+      },
+      theme: {
+        extend: {
+          colors: {
+            inha: { navy: '#1e3a8a', blue: '#1e40af', cyan: '#06b6d4', light: '#f1f5f9', dark: '#0f172a' }
+          },
+          fontFamily: {
+            sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+            mono: ['Consolas', 'Courier New', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="dark-theme">
+  <!-- Glow Background Effects -->
+  <div class="glow-bg glow-bg-1"></div>
+  <div class="glow-bg glow-bg-2"></div>
+
+  <!-- Navigation Bar -->
+  <header class="main-header">
+    <div class="header-container">
+      <a href="#" class="logo" id="logo-link" style="display: flex; align-items: center; gap: 10px;">
+        <img src="./Signature/Signature_LR01.png" alt="인하대학교 로고" style="height: 32px; object-fit: contain;">
+        <span><span class="logo-accent">디지털</span>새싹 캠프</span>
+      </a>
+      
+      <nav class="nav-menu" id="nav-menu">
+        <a href="#catalog-section" class="nav-link" id="nav-link-catalog" style="display: none !important;">교육과정 탐색</a>
+        <a href="#status-section" class="nav-link active" id="nav-link-status">나의 신청 현황 <span class="badge" id="app-badge">0</span></a>
+        <a href="#admin-section" class="nav-link" id="nav-link-admin"><i class="fa-solid fa-user-shield"></i> 관리자 모드</a>
+      </nav>
+      
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="테마 변경">
+          <i class="fa-solid fa-sun icon-sun"></i>
+          <i class="fa-solid fa-moon icon-moon"></i>
+        </button>
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="메뉴 열기">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="badge-glow">2026 NEW CURRICULUM</div>
+      <h1 class="hero-title">새싹이 자라 나무가 되듯,<br><span class="gradient-text">디지털새싹 SW·AI 캠프</span></h1>
+      <p class="hero-subtitle">초·중·고등학생을 위한 전액 무료 SW·AI 교육 프로그램! 쉽고 재미있게 배우며 미래를 향한 디지털 역량을 키워보세요.</p>
+      <div class="hero-buttons">
+        <button type="button" class="btn btn-primary btn-glow" id="btn-hero-submit-docs"><i class="fa-solid fa-cloud-arrow-up"></i> 프로그램 제출하기</button>
+        <a href="#status-section" class="btn btn-secondary"><i class="fa-solid fa-magnifying-glass"></i> 제출 현황 조회</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Wrapper -->
+  <main class="content-wrapper">
+    
+    <!-- Course Catalog Section -->
+    <section id="catalog-section" class="catalog-section" style="display: none !important;">
+      <div class="section-header">
+        <h2 class="section-title">🖥️ 교육과정 탐색</h2>
+        <p class="section-desc">현재 모집 중인 디지털새싹 SW·AI 캠프입니다. 참가 대상별 교육과정을 둘러보세요.</p>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div class="filter-bar">
+        <div class="category-filters" id="category-filters">
+          <button class="filter-chip active" data-category="all">전체</button>
+          <button class="filter-chip" data-category="elementary">초등 과정</button>
+          <button class="filter-chip" data-category="middle">중등 과정</button>
+          <button class="filter-chip" data-category="high">고등 과정</button>
+          <button class="filter-chip" data-category="family">가족 과정</button>
+        </div>
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="course-search" placeholder="원하는 과정이나 강사를 검색해보세요...">
+          <button id="search-clear-btn" class="search-clear-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <!-- Course Catalog Grid -->
+      <div class="course-grid" id="course-grid">
+        <!-- Dynmically loaded via JavaScript -->
+        <div class="loading-state">
+          <i class="fa-solid fa-spinner fa-spin loading-icon"></i>
+          <p>교육과정 목록을 불러오는 중입니다...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Application Status Dashboard Section -->
+    <section id="status-section" class="status-section">
+      <div class="section-header">
+        <div class="section-title-wrapper" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+          <h2 class="section-title" style="margin: 0;">📋 강사 서류 제출 현황 조회</h2>
+          <span class="db-status-badge offline" id="db-status-badge">
+            <i class="fa-solid fa-circle status-dot"></i> <span id="db-status-text">로컬 저장소 모드</span>
+          </span>
+        </div>
+        <p class="section-desc">제출하신 디지털새싹 강사 행정서류 및 진행서류 현황을 실시간으로 확인하고 관리하세요.</p>
+      </div>
+
+      <!-- DB Search / Lookup Box -->
+      <div class="status-search-card glass-card" style="margin-bottom: 24px;">
+        <h3 class="status-search-title"><i class="fa-solid fa-magnifying-glass"></i> 제출한 서류 현황 조회하기</h3>
+        <p class="status-search-desc">제출하신 강사 이름과 휴대폰 번호를 모두 정확히 입력해야 본인 확인 후 제출 내역 조회가 가능합니다.</p>
+        <div class="status-search-form" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <div class="search-input-group" style="flex: 1; min-width: 150px;">
+            <i class="fa-regular fa-user input-icon"></i>
+            <input type="text" id="lookup-student-name" placeholder="강사 이름 (예: 홍길동)">
+          </div>
+
+          <div class="search-input-group" style="flex: 1; min-width: 180px;">
+            <i class="fa-solid fa-phone input-icon"></i>
+            <input type="tel" id="lookup-doc-id" placeholder="휴대폰 번호 (예: 010-1234-5678)" maxlength="13">
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-lookup-apps" style="flex-shrink: 0;">내역 조회 <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <div id="lookup-results-info" class="lookup-results-info" style="display: none;">
+          <!-- Loaded via JS -->
+        </div>
+      </div>
+
+      <div class="status-dashboard-card">
+        <div class="status-summary">
+          <div class="summary-item">
+            <span class="summary-label">총 제출 건수</span>
+            <span class="summary-value" id="summary-total">0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">검토 중</span>
+            <span class="summary-value" id="summary-pending">0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">제출 완료</span>
+            <span class="summary-value text-success" id="summary-approved">0</span>
+          </div>
+        </div>
+        
+        <div class="applications-container" id="applications-container">
+          <!-- Dynamically loaded via JavaScript -->
+          <div class="empty-state">
+            <i class="fa-regular fa-clipboard empty-icon"></i>
+            <p>조회된 제출 서류가 없습니다.</p>
+            <p class="empty-sub">본인의 강사 이름과 휴대폰 번호로 검색하여 제출 내역을 조회해 보세요!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Admin Dashboard Section -->
+    <section id="admin-section" class="admin-section" style="display: none; padding-top: 100px; margin-top: -60px; margin-bottom: 80px;">
       <div class="section-header">
         <h2 class="section-title"><i class="fa-solid fa-user-shield"></i> 관리자 대시보드</h2>
         <p class="section-desc">디지털새싹 캠프 전체 신청 내역을 조회하고 실시간으로 접수 승인 및 반려 상태를 관리합니다.</p>
@@ -189,19 +373,19 @@
 
       <!-- Admin Sub Tabs Navigation -->
       <div class="admin-tabs">
-        <button type="button" class="admin-tab-btn active" id="admin-tab-btn-applications" onclick="switchAdminTab('applications')">
+        <button type="button" class="admin-tab-btn" id="admin-tab-btn-applications" onclick="switchAdminTab('applications')" style="display: none !important;">
           <i class="fa-solid fa-clipboard-list"></i> 신청서 접수 관리
         </button>
         <button type="button" class="admin-tab-btn" id="admin-tab-btn-courses" onclick="switchAdminTab('courses')" style="display: none !important;">
           <i class="fa-solid fa-graduation-cap"></i> 교육과정 등록 관리
         </button>
-        <button type="button" class="admin-tab-btn" id="admin-tab-btn-instructor-docs" onclick="switchAdminTab('instructor-docs')">
+        <button type="button" class="admin-tab-btn active" id="admin-tab-btn-instructor-docs" onclick="switchAdminTab('instructor-docs')">
           <i class="fa-solid fa-file-excel"></i> 강사 서류 자동화 관리
         </button>
       </div>
 
       <!-- Tab Content 1: Applications -->
-      <div id="admin-tab-content-applications" class="admin-tab-content">
+      <div id="admin-tab-content-applications" class="admin-tab-content" style="display: none;">
         <div class="admin-dashboard-card glass-card">
           <div class="admin-controls">
           <div class="admin-stats">
@@ -296,7 +480,7 @@
       </div>
 
       <!-- Tab Content 3: Instructor Documents Automation -->
-      <div id="admin-tab-content-instructor-docs" class="admin-tab-content" style="display: none; padding-top: 20px;">
+      <div id="admin-tab-content-instructor-docs" class="admin-tab-content" style="padding-top: 20px;">
         
         <!-- 실시간 통계 요약 (대시보드 위젯) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
