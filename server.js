@@ -482,6 +482,30 @@ app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
   }
 });
 
+
+// Public GET Programs
+app.get("/api/public/programs", (req, res) => {
+  const db = readDb();
+  const programs = new Set();
+  db.forEach(d => {
+    if (d.className) programs.add(d.className);
+  });
+  res.json({ success: true, data: Array.from(programs) });
+});
+
+// Instructor Auth updated to require className
+app.post("/api/instructor/auth", (req, res) => {
+  const { className, name, phone } = req.body;
+  const db = readDb();
+  // Using className to authenticate exactly
+  const inst = db.find(d => d.className === className && d.name === name && d.phone === phone);
+  if (inst) {
+    res.json({ success: true, data: inst });
+  } else {
+    res.status(404).json({ error: "등록된 명단에 없습니다. 관리자에게 문의하세요." });
+  }
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`===================================================`);
