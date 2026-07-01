@@ -1,4 +1,6 @@
-let state = {
+const fs = require('fs');
+
+const appJsCode = `let state = {
   instructorDocs: [],
   isAdminAuthenticated: sessionStorage.getItem("digitalsaessak-admin-auth") === "true",
   adminToken: sessionStorage.getItem("digitalsaessak-admin-token") || ""
@@ -72,7 +74,7 @@ const APIService = {
     try {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), 1000);
-      const res = await fetch(`${API_URL}/health`, { signal: controller.signal });
+      const res = await fetch(\`\${API_URL}/health\`, { signal: controller.signal });
       clearTimeout(id);
       return res.ok;
     } catch (e) {
@@ -80,7 +82,7 @@ const APIService = {
     }
   },
   async login(id, password) {
-    const res = await fetch(`${API_URL}/admin/login`, {
+    const res = await fetch(\`\${API_URL}/admin/login\`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, password })
@@ -94,16 +96,16 @@ const APIService = {
   },
   async getInstructorDocs() {
     const headers = {};
-    if (state.adminToken) headers["Authorization"] = `Bearer ${state.adminToken}`;
-    const res = await fetch(`${API_URL}/admin/instructor-docs`, { headers });
+    if (state.adminToken) headers["Authorization"] = \`Bearer \${state.adminToken}\`;
+    const res = await fetch(\`\${API_URL}/admin/instructor-docs\`, { headers });
     if (!res.ok) throw new Error("Failed to fetch documents");
     const data = await res.json();
     return data.data;
   },
   async updateInstructorDoc(id, docData) {
     const headers = { "Content-Type": "application/json" };
-    if (state.adminToken) headers["Authorization"] = `Bearer ${state.adminToken}`;
-    const res = await fetch(`${API_URL}/admin/instructor-docs/${id}`, {
+    if (state.adminToken) headers["Authorization"] = \`Bearer \${state.adminToken}\`;
+    const res = await fetch(\`\${API_URL}/admin/instructor-docs/\${id}\`, {
       method: "PUT",
       headers,
       body: JSON.stringify(docData)
@@ -113,8 +115,8 @@ const APIService = {
   },
   async deleteInstructorDoc(id) {
     const headers = {};
-    if (state.adminToken) headers["Authorization"] = `Bearer ${state.adminToken}`;
-    const res = await fetch(`${API_URL}/admin/instructor-docs/${id}`, {
+    if (state.adminToken) headers["Authorization"] = \`Bearer \${state.adminToken}\`;
+    const res = await fetch(\`\${API_URL}/admin/instructor-docs/\${id}\`, {
       method: "DELETE",
       headers
     });
@@ -174,14 +176,14 @@ function renderInstructorDocs() {
   });
 
   if (filteredDocs.length === 0) {
-    DOM.spreadsheetTbody.innerHTML = `
+    DOM.spreadsheetTbody.innerHTML = \`
       <tr>
         <td colspan="5" class="py-8 text-center text-slate-500">
           <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300"></i>
           <p>등록된 강사 서류가 없습니다.</p>
         </td>
       </tr>
-    `;
+    \`;
     updateDashboardStats();
     return;
   }
@@ -192,7 +194,7 @@ function renderInstructorDocs() {
     let missingDocs = [];
 
     required.forEach(docId => {
-      const docStatus = doc[`doc${docId}Status`] || "pending";
+      const docStatus = doc[\`doc\${docId}Status\`] || "pending";
       if (docStatus === "approved") {
         approvedCount++;
       } else {
@@ -203,36 +205,36 @@ function renderInstructorDocs() {
     const isComplete = required.length > 0 && approvedCount === required.length;
     let statusHtml = '';
     if (required.length === 0) {
-      statusHtml = `<span class="text-slate-400 text-xs">필요 서류 없음</span>`;
+      statusHtml = \`<span class="text-slate-400 text-xs">필요 서류 없음</span>\`;
     } else if (isComplete) {
-      statusHtml = `<span class="text-emerald-600 font-bold text-sm bg-emerald-50 px-2 py-1 rounded">제출 ${approvedCount}/${required.length} (완료)</span>`;
+      statusHtml = \`<span class="text-emerald-600 font-bold text-sm bg-emerald-50 px-2 py-1 rounded">제출 \${approvedCount}/\${required.length} (완료)</span>\`;
     } else {
-      statusHtml = `
-        <div class="text-rose-600 font-bold text-sm bg-rose-50 px-2 py-1 rounded inline-block mb-1">제출 ${approvedCount}/${required.length} (미비)</div>
-        <div class="text-[10px] text-slate-500 leading-tight max-w-[200px] truncate" title="${missingDocs.join(', ')}">
-          미제출: ${missingDocs.join(', ')}
+      statusHtml = \`
+        <div class="text-rose-600 font-bold text-sm bg-rose-50 px-2 py-1 rounded inline-block mb-1">제출 \${approvedCount}/\${required.length} (미비)</div>
+        <div class="text-[10px] text-slate-500 leading-tight max-w-[200px] truncate" title="\${missingDocs.join(', ')}">
+          미제출: \${missingDocs.join(', ')}
         </div>
-      `;
+      \`;
     }
 
     const tr = document.createElement("tr");
     tr.className = "border-b border-slate-100 hover:bg-slate-50 transition";
-    tr.innerHTML = `
-      <td class="p-3 border-r text-center text-slate-400 font-mono text-xs">${index + 1}</td>
+    tr.innerHTML = \`
+      <td class="p-3 border-r text-center text-slate-400 font-mono text-xs">\${index + 1}</td>
       <td class="p-3 border-r">
-        <div class="font-bold text-slate-800 text-sm">${doc.className || '-'}</div>
+        <div class="font-bold text-slate-800 text-sm">\${doc.className || '-'}</div>
       </td>
       <td class="p-3 border-r">
-        <div class="font-bold text-slate-800">${doc.studentName || '-'}</div>
-        <div class="text-xs text-slate-500 mt-0.5"><span class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700">${doc.status || '미지정'}</span> <span class="bg-inha-light text-inha-navy px-1.5 py-0.5 rounded">${doc.role || '미지정'}</span></div>
+        <div class="font-bold text-slate-800">\${doc.studentName || '-'}</div>
+        <div class="text-xs text-slate-500 mt-0.5"><span class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700">\${doc.status || '미지정'}</span> <span class="bg-inha-light text-inha-navy px-1.5 py-0.5 rounded">\${doc.role || '미지정'}</span></div>
       </td>
       <td class="p-3 border-r">
-        ${statusHtml}
+        \${statusHtml}
       </td>
       <td class="p-3 text-center">
-        <button class="btn-detail bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition" data-id="${doc.id}">상세</button>
+        <button class="btn-detail bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition" data-id="\${doc.id}">상세</button>
       </td>
-    `;
+    \`;
     DOM.spreadsheetTbody.appendChild(tr);
   });
 
@@ -265,7 +267,7 @@ function updateDashboardStats() {
     const required = getRequiredDocs(doc.status, doc.role);
     totalRequiredDocs += required.length;
     required.forEach(docId => {
-      const st = doc[`doc${docId}Status`] || "pending";
+      const st = doc[\`doc\${docId}Status\`] || "pending";
       if (st === "approved") totalApprovedDocs++;
       else if (st === "review") totalReviewDocs++;
       else totalPendingDocs++;
@@ -274,11 +276,11 @@ function updateDashboardStats() {
 
   const rate = totalRequiredDocs === 0 ? 0 : Math.round((totalApprovedDocs / totalRequiredDocs) * 100);
 
-  if (DOM.overallCompletionRate) DOM.overallCompletionRate.textContent = `${rate}%`;
-  if (DOM.overallProgressBar) DOM.overallProgressBar.style.width = `${rate}%`;
-  if (DOM.countComplete) DOM.countComplete.textContent = `${totalApprovedDocs}개`;
-  if (DOM.countReview) DOM.countReview.textContent = `${totalReviewDocs}개`;
-  if (DOM.countPending) DOM.countPending.textContent = `${totalPendingDocs}개`;
+  if (DOM.overallCompletionRate) DOM.overallCompletionRate.textContent = \`\${rate}%\`;
+  if (DOM.overallProgressBar) DOM.overallProgressBar.style.width = \`\${rate}%\`;
+  if (DOM.countComplete) DOM.countComplete.textContent = \`\${totalApprovedDocs}개\`;
+  if (DOM.countReview) DOM.countReview.textContent = \`\${totalReviewDocs}개\`;
+  if (DOM.countPending) DOM.countPending.textContent = \`\${totalPendingDocs}개\`;
 }
 
 let currentEditingId = null;
@@ -310,37 +312,37 @@ function renderModalDocs(doc) {
 
   for (let i = 1; i <= 11; i++) {
     const isRequired = required.includes(i);
-    const docStatus = doc[`doc${i}Status`] || 'pending';
-    const docUrl = doc[`doc${i}Url`] || '';
+    const docStatus = doc[\`doc\${i}Status\`] || 'pending';
+    const docUrl = doc[\`doc\${i}Url\`] || '';
 
     const bgClass = isRequired ? 'bg-white' : 'bg-slate-100 opacity-60 grayscale';
-    const reqBadge = isRequired ? `<span class="bg-rose-100 text-rose-600 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">필수</span>` : `<span class="bg-slate-200 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">비대상</span>`;
+    const reqBadge = isRequired ? \`<span class="bg-rose-100 text-rose-600 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">필수</span>\` : \`<span class="bg-slate-200 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">비대상</span>\`;
     
     let statusSelect = '';
     if (isRequired) {
-      statusSelect = `
-        <select class="status-select border border-slate-300 rounded text-xs px-2 py-1 focus:ring-inha-blue" data-doc-id="${i}">
-          <option value="pending" ${docStatus === 'pending' ? 'selected' : ''}>미제출</option>
-          <option value="review" ${docStatus === 'review' ? 'selected' : ''}>검토중</option>
-          <option value="approved" ${docStatus === 'approved' ? 'selected' : ''}>승인완료</option>
+      statusSelect = \`
+        <select class="status-select border border-slate-300 rounded text-xs px-2 py-1 focus:ring-inha-blue" data-doc-id="\${i}">
+          <option value="pending" \${docStatus === 'pending' ? 'selected' : ''}>미제출</option>
+          <option value="review" \${docStatus === 'review' ? 'selected' : ''}>검토중</option>
+          <option value="approved" \${docStatus === 'approved' ? 'selected' : ''}>승인완료</option>
         </select>
-      `;
+      \`;
     }
 
-    const html = `
-      <div class="p-3 border border-slate-200 rounded-lg ${bgClass} flex flex-col md:flex-row gap-3 items-center">
+    const html = \`
+      <div class="p-3 border border-slate-200 rounded-lg \${bgClass} flex flex-col md:flex-row gap-3 items-center">
         <div class="flex-1 w-full">
-          <div class="text-sm font-bold text-slate-800">${i}. ${DOC_TYPES[i]} ${reqBadge}</div>
-          ${isRequired ? `<input type="text" class="url-input w-full mt-1 border border-slate-300 rounded px-2 py-1 text-xs" placeholder="파일 URL 입력" value="${docUrl}" data-doc-id="${i}">` : `<div class="text-xs text-slate-400 mt-1">이 신분/직종은 제출 대상이 아닙니다.</div>`}
+          <div class="text-sm font-bold text-slate-800">\${i}. \${DOC_TYPES[i]} \${reqBadge}</div>
+          \${isRequired ? \`<input type="text" class="url-input w-full mt-1 border border-slate-300 rounded px-2 py-1 text-xs" placeholder="파일 URL 입력" value="\${docUrl}" data-doc-id="\${i}">\` : \`<div class="text-xs text-slate-400 mt-1">이 신분/직종은 제출 대상이 아닙니다.</div>\`}
         </div>
-        ${isRequired ? `
+        \${isRequired ? \`
         <div class="flex gap-2 shrink-0 w-full md:w-auto mt-2 md:mt-0">
-          ${statusSelect}
-          ${docUrl ? `<a href="${docUrl}" target="_blank" class="bg-inha-blue text-white text-xs px-3 py-1.5 rounded hover:bg-inha-navy transition"><i class="fa-solid fa-download"></i> 확인</a>` : ''}
+          \${statusSelect}
+          \${docUrl ? \`<a href="\${docUrl}" target="_blank" class="bg-inha-blue text-white text-xs px-3 py-1.5 rounded hover:bg-inha-navy transition"><i class="fa-solid fa-download"></i> 확인</a>\` : ''}
         </div>
-        ` : ''}
+        \` : ''}
       </div>
-    `;
+    \`;
     DOM.modalDocsContainer.insertAdjacentHTML('beforeend', html);
   }
 
@@ -348,14 +350,14 @@ function renderModalDocs(doc) {
     sel.addEventListener('change', (e) => {
       const docId = e.target.getAttribute('data-doc-id');
       const val = e.target.value;
-      updateLocalDocField(currentEditingId, `doc${docId}Status`, val);
+      updateLocalDocField(currentEditingId, \`doc\${docId}Status\`, val);
     });
   });
   document.querySelectorAll('.url-input').forEach(inp => {
     inp.addEventListener('change', (e) => {
       const docId = e.target.getAttribute('data-doc-id');
       const val = e.target.value;
-      updateLocalDocField(currentEditingId, `doc${docId}Url`, val);
+      updateLocalDocField(currentEditingId, \`doc\${docId}Url\`, val);
     });
   });
 }
@@ -425,8 +427,8 @@ function showToast(message, type = "info") {
   if (type === "error") { bgColor = "bg-rose-600"; icon = "fa-circle-xmark"; }
   if (type === "warning") { bgColor = "bg-amber-500"; icon = "fa-triangle-exclamation"; }
 
-  toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm font-medium transform transition-all duration-300 translate-y-4 opacity-0`;
-  toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+  toast.className = \`\${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm font-medium transform transition-all duration-300 translate-y-4 opacity-0\`;
+  toast.innerHTML = \`<i class="fa-solid \${icon}"></i> <span>\${message}</span>\`;
   
   DOM.toastContainer.appendChild(toast);
   setTimeout(() => { toast.classList.remove("translate-y-4", "opacity-0"); }, 10);
@@ -523,7 +525,7 @@ if (DOM.btnAdminRefresh) {
 const btnAddRow = document.getElementById("btn-add-inst-row");
 if (btnAddRow) {
   btnAddRow.addEventListener("click", async () => {
-    const newId = `doc-${Date.now()}`;
+    const newId = \`doc-\${Date.now()}\`;
     const newDoc = {
         id: newId,
         studentName: "신규 강사",
@@ -534,8 +536,8 @@ if (btnAddRow) {
         date: new Date().toLocaleDateString()
     };
     for (let i = 1; i <= 11; i++) {
-        newDoc[`doc${i}Url`] = "";
-        newDoc[`doc${i}Status`] = "pending";
+        newDoc[\`doc\${i}Url\`] = "";
+        newDoc[\`doc\${i}Status\`] = "pending";
     }
     state.instructorDocs.unshift(newDoc);
     saveInstructorDocs();
@@ -546,3 +548,7 @@ if (btnAddRow) {
     showToast("신규 강사 행이 추가되었습니다. 상세를 눌러 정보를 입력하세요.", "success");
   });
 }
+`;
+
+fs.writeFileSync('app.js', appJsCode, 'utf8');
+console.log('Successfully updated app.js');
