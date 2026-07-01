@@ -81,9 +81,7 @@
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-bold text-slate-800"><i class="fa-solid fa-file-import text-inha-blue mr-2"></i>강사 명단 엑셀 일괄 등록</h3>
-          <button id="btn-excel-register" class="bg-emerald-600 text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-emerald-500 transition shadow-sm hidden">
-            <i class="fa-solid fa-cloud-arrow-up"></i> DB에 최종 등록하기
-          </button>
+          
         </div>
         <div id="excel-drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-slate-50 hover:bg-slate-100 hover:border-inha-blue transition cursor-pointer">
           <i class="fa-solid fa-file-excel text-4xl text-emerald-500 mb-3"></i>
@@ -176,11 +174,19 @@
                         <input type="text" id="filter-missing" placeholder="서류명 (예: 신분증)" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-32">
                     </div>
                     
-                    <div class="ml-auto mt-auto">
+                    
+                    <div class="flex items-end gap-2 ml-auto mt-auto">
+                        <button id="btn-search" class="bg-slate-800 text-white font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-slate-700 transition flex items-center gap-2 shadow-sm h-[34px]">
+                            <i class="fa-solid fa-magnifying-glass"></i> 검색
+                        </button>
+                        <button id="btn-reset-filters" class="bg-slate-200 text-slate-700 font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-slate-300 transition flex items-center gap-2 shadow-sm h-[34px]">
+                            <i class="fa-solid fa-rotate-left"></i> 전체 리스트 보기
+                        </button>
                         <button id="btn-download-zip" class="bg-inha-blue text-white font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-inha-navy transition flex items-center gap-2 shadow-sm h-[34px]">
                             <i class="fa-solid fa-file-zipper"></i> 선택 ZIP 다운로드
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>
