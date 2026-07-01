@@ -33,7 +33,6 @@
 
   <main class="flex-grow flex flex-col items-center justify-start p-6 w-full" id="main-content">
     
-    <!-- Login Section -->
     <section id="login-section" class="w-full max-w-md mt-20" style="display: block;">
       <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
         <div class="text-center mb-8">
@@ -65,7 +64,6 @@
       </div>
     </section>
 
-    <!-- Admin Dashboard Section -->
     <section id="admin-dashboard-section" class="w-full max-w-[1400px]" style="display: none;">
       <div class="mb-6 flex justify-between items-end">
         <div>
@@ -79,7 +77,6 @@
         </div>
       </div>
 
-      <!-- Excel Upload Area -->
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-6">
         <h3 class="font-bold text-slate-800 mb-4"><i class="fa-solid fa-file-import text-inha-blue mr-2"></i>강사 명단 엑셀 일괄 등록</h3>
         <div id="excel-drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-slate-50 hover:bg-slate-100 hover:border-inha-blue transition cursor-pointer">
@@ -90,7 +87,6 @@
         </div>
       </div>
 
-      <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between">
               <div>
@@ -126,37 +122,75 @@
           </div>
       </div>
       
-      <!-- SPREADSHEET CONTAINER -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <div class="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-3 flex-wrap">
-                <input type="text" id="filter-school" placeholder="소속 검색" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-32">
-                <input type="text" id="filter-name" placeholder="강사명 검색" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-28">
-                <select id="filter-status" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue">
-                  <option value="all">신분 전체</option>
-                  <option value="교원">교원</option>
-                  <option value="일반">일반강사</option>
-                </select>
-                <input type="text" id="filter-missing" placeholder="누락 서류 검색 (예: 신분증)" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-48">
-            </div>
-            <div class="flex items-center gap-2">
-                <button id="btn-download-zip" class="bg-inha-blue text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-inha-navy transition flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-file-zipper"></i> 선택 강사 ZIP 다운로드
-                </button>
+        <div class="bg-slate-50 border-b border-slate-200 p-4 flex flex-col gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3 w-full">
+                    
+                    <!-- Datalists for Autocomplete -->
+                    <datalist id="program-list"></datalist>
+                    <datalist id="name-list"></datalist>
+                    
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 mb-0.5">프로그램명</label>
+                        <input type="text" id="filter-program" list="program-list" placeholder="프로그램 검색" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-40">
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 mb-0.5">강사명</label>
+                        <input type="text" id="filter-name" list="name-list" placeholder="강사명 검색" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-28">
+                    </div>
+
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 mb-0.5">학교명</label>
+                        <input type="text" id="filter-school" placeholder="소속 검색" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-32">
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 mb-0.5">제출일 (시작 ~ 종료)</label>
+                        <div class="flex items-center gap-1">
+                            <input type="date" id="filter-date-start" class="border border-slate-300 rounded px-2 py-1.5 text-sm focus:ring-inha-blue">
+                            <span class="text-slate-400">~</span>
+                            <input type="date" id="filter-date-end" class="border border-slate-300 rounded px-2 py-1.5 text-sm focus:ring-inha-blue">
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 mb-0.5">유형</label>
+                        <select id="filter-status" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue">
+                          <option value="all">전체</option>
+                          <option value="교원">교원</option>
+                          <option value="일반">일반강사</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 mb-0.5">누락 서류</label>
+                        <input type="text" id="filter-missing" placeholder="서류명 (예: 신분증)" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-32">
+                    </div>
+                    
+                    <div class="ml-auto mt-auto">
+                        <button id="btn-download-zip" class="bg-inha-blue text-white font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-inha-navy transition flex items-center gap-2 shadow-sm h-[34px]">
+                            <i class="fa-solid fa-file-zipper"></i> 선택 ZIP 다운로드
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="overflow-x-auto w-full">
-            <table class="w-full text-sm text-left border-collapse" style="min-width: 900px;">
+            <table class="w-full text-sm text-left border-collapse" style="min-width: 1000px;">
                 <thead>
                     <tr class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 text-center uppercase tracking-wider text-[12px]">
                         <th class="p-3 border-r w-10"><input type="checkbox" id="chk-all" class="rounded text-inha-blue focus:ring-inha-blue"></th>
+                        <th class="p-3 border-r w-56">프로그램명</th>
                         <th class="p-3 border-r w-32">소속 (학교)</th>
                         <th class="p-3 border-r w-24">강사명</th>
                         <th class="p-3 border-r w-32">연락처</th>
+                        <th class="p-3 border-r w-40">최종 제출일시</th>
                         <th class="p-3 border-r w-20">유형</th>
-                        <th class="p-3 border-r">서류 제출 현황 (미제출 ❌)</th>
-                        <th class="p-3 w-20">관리</th>
+                        <th class="p-3 border-r">서류 현황 (❌ 미제출)</th>
+                        <th class="p-3 w-16">관리</th>
                     </tr>
                 </thead>
                 <tbody id="spreadsheet-tbody" class="bg-white">
@@ -168,7 +202,6 @@
     </section>
   </main>
 
-  <!-- Submission Details Modal (Admin view only) -->
   <div id="submission-details-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center" style="display:none; opacity: 0; transition: opacity 0.3s ease;">
     <div class="bg-white rounded-2xl shadow-2xl w-[90%] max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col transform scale-100 transition-transform duration-300 border border-slate-100">
       <div class="p-5 border-b border-slate-200 flex justify-between items-start bg-slate-50 rounded-t-2xl">
@@ -176,17 +209,14 @@
           <h3 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
             <i class="fa-solid fa-folder-open text-inha-blue"></i> 강사 서류 상세 관리
           </h3>
-          <p class="text-xs text-slate-500 mt-1">강사 신분에 따라 필수 제출 서류가 동적으로 활성화됩니다.</p>
         </div>
         <button id="submission-details-close" class="text-slate-400 hover:text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition">
           <i class="fa-solid fa-xmark text-xl"></i>
         </button>
       </div>
 
-      <!-- Modal Body -->
       <div class="p-6 max-h-[70vh] overflow-y-auto bg-slate-50/50">
         <div id="modal-content-area" class="max-w-4xl mx-auto space-y-6">
-          
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <h4 class="font-bold text-slate-800 mb-4 border-b pb-2"><i class="fa-solid fa-user-pen mr-2 text-slate-500"></i>기본 정보</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -219,11 +249,9 @@
             </div>
           </div>
 
-          <!-- 동적 서류 현황 영역 -->
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <h4 class="font-bold text-slate-800 mb-4 border-b pb-2"><i class="fa-solid fa-file-invoice mr-2 text-slate-500"></i>제출된 서류 파일 내역</h4>
             <div id="modal-docs-container" class="space-y-3">
-              <!-- JS will inject doc sections here -->
             </div>
           </div>
         </div>
