@@ -44,6 +44,7 @@ const DOM = {
   
   infoDisplay: document.getElementById('info-display'),
   statusRadios: document.querySelectorAll('input[name="instructor-status"]'),
+  roleRadios: document.querySelectorAll('input[name="instructor-role"]'),
   
   docGroupStep2: document.getElementById('doc-group-step2'),
   docGroupStep3Basic: document.getElementById('doc-group-step3-basic'),
@@ -132,142 +133,9 @@ function updateUI() {
 
 function renderDocInputs() {
   const status = document.querySelector('input[name="instructor-status"]:checked').value;
-  const req = getRequiredDocs(status);
-  
-  // Step 2
-  DOM.docGroupStep2.innerHTML = '';
-  [1, 2, 8, 11].forEach(docId => {
-    if (req.includes(docId)) {
-      DOM.docGroupStep2.innerHTML += `
-        <div class="p-4 border border-slate-200 rounded-lg bg-white">
-          <label class="block text-sm font-bold text-slate-800 mb-1">${docId}. ${DOC_NAMES[docId]}</label>
-          <input type="file" name="doc${docId}" class="w-full text-sm mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700">
-        </div>
-      `;
-    }
-  });
-
-  // Step 3
-  DOM.docGroupStep3Basic.innerHTML = '';
-  [3, 4, 5].forEach(docId => {
-    if (req.includes(docId)) {
-      DOM.docGroupStep3Basic.innerHTML += `
-        <div class="p-4 border border-slate-200 rounded-lg bg-white">
-          <label class="block text-sm font-bold text-slate-800 mb-1">${docId}. ${DOC_NAMES[docId]}</label>
-          <input type="file" name="doc${docId}" class="w-full text-sm mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700">
-        </div>
-      `;
-    }
-  });
-}
-
-// Event Listeners
-DOM.btnAuth.addEventListener('click', async () => {
-  const name = DOM.authName.value.trim();
-  const phone = DOM.authPhone.value.trim();
-  const className = document.getElementById('auth-program').value;
-  
-  if(!className || !name || !phone) {
-    DOM.authError.textContent = "프로그램 선택, 이름, 전화번호를 모두 입력해주세요.";
-    DOM.authError.classList.remove('hidden');
-    return;
-  }
-    DOM.authError.textContent = "이름과 전화번호를 모두 입력해주세요.";
-    DOM.authError.classList.remove('hidden');
-    return;
-  }
-  
-  DOM.btnAuth.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 조회 중...';
-  
-  try {
-    const res = await fetch(`${API_URL}/instructor/auth`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ className, name, phone })
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      instructorData = data.data;
-      DOM.infoDisplay.textContent = `소속: ${instructorData.school} | 프로그램: ${instructorData.className}`;
-      
-      // Select status radio if exists
-      if (instructorData.status === "교원") {
-        document.querySelector('input[value="교원"]').checked = true;
-      }
-      
-      DOM.authError.classList.add('hidden');
-      currentStep = 1;
-      updateUI();
-    } else {
-      DOM.authError.textContent = data.error || "명단을 찾을 수 없습니다.";
-      DOM.authError.classList.remove('hidden');
-    }
-  } catch(e) {
-    DOM.authError.textContent = "서버 접속에 실패했습니다.";
-    DOM.authError.classList.remove('hidden');
-  } finally {
-    DOM.btnAuth.innerHTML = '조회 및 시작하기';
-  }
-});
-
-DOM.statusRadios.forEach(radio => {
-  radio.addEventListener('change', () => {
-    // Style update
-    document.querySelectorAll('.type-radio').forEach(r => {
-      r.classList.remove('bg-blue-50', 'border-inha-blue');
-      r.classList.add('border-slate-200');
-    });
-    if (radio.checked) {
-      radio.closest('.type-radio').classList.remove('border-slate-200');
-      radio.closest('.type-radio').classList.add('bg-blue-50', 'border-inha-blue');
-    }
-  });
-});
-
-DOM.btnNext.addEventListener('click', () => {
-  if (currentStep === 1) renderDocInputs();
-  currentStep++;
-  updateUI();
-});
-
-DOM.btnPrev.addEventListener('click', () => {
-  currentStep--;
-  updateUI();
-});
-
-document.querySelectorAll('.btn-add-round').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const target = e.target.getAttribute('data-target');
-    roundCount[target]++;
-    const container = document.getElementById(`round-container-${target}`);
-    const row = document.createElement('div');
-    row.className = "flex gap-2 items-center mt-2";
-    row.innerHTML = `
-      <span class="text-sm font-bold text-slate-500 w-12 text-center">${roundCount[target]}회차</span>
-      <input type="file" name="doc${target}_${roundCount[target]}" class="flex-1 text-sm border border-slate-200 rounded p-1">
-    `;
-    container.appendChild(row);
-  });
-});
-
-DOM.submitForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  if (currentStep !== 4) return;
-  
-  DOM.btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 업로드 중...';
-  DOM.btnSubmit.disabled = true;
-  
-  const formData = new FormData(DOM.submitForm);
-  formData.append('name', instructorData.name);
-  formData.append('phone', instructorData.phone);
-  formData.append('school', instructorData.school);
-  formData.append('className', instructorData.className);
-  formData.append('first_submission_date', instructorData.first_submission_date || '');
-  
-  const status = document.querySelector('input[name="instructor-status"]:checked').value;
+  const role = document.querySelector('input[name="instructor-role"]:checked').value;
   formData.append('status', status);
+  formData.append('role', role);
 
   try {
     const res = await fetch(`${API_URL}/instructor/submit`, {

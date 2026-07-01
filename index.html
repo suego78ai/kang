@@ -196,6 +196,7 @@
                         <th class="p-3 border-r w-32">연락처</th>
                         <th class="p-3 border-r w-40">최종 제출일시</th>
                         <th class="p-3 border-r w-20">유형</th>
+                        <th class="p-3 border-r w-24">역할</th>
                         <th class="p-3 border-r">서류 현황 (❌ 미제출)</th>
                         <th class="p-3 w-16">관리</th>
                     </tr>
@@ -243,6 +244,7 @@
                 <label class="block text-xs font-bold text-slate-600 mb-1">전화번호</label>
                 <input type="text" id="modal-phone" class="w-full border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue">
               </div>
+              
               <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1">신분 (유형)</label>
                 <select id="modal-status" class="w-full border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue">
@@ -250,6 +252,16 @@
                   <option value="교원">현직 교원</option>
                 </select>
               </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">역할</label>
+                <select id="modal-role" class="w-full border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue">
+                  <option value="주강사">주강사</option>
+                  <option value="보조강사">보조강사</option>
+                  <option value="운영요원">운영요원</option>
+                  <option value="안전요원">안전요원</option>
+                </select>
+              </div>
+
             </div>
             <div class="mt-4 flex justify-end">
               <button id="btn-save-instructor-info" class="bg-slate-800 text-white px-4 py-1.5 rounded text-sm hover:bg-slate-700 transition">정보 임의 수정</button>

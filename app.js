@@ -44,6 +44,7 @@ const DOM = {
   modalStudentName: document.getElementById("modal-student-name"),
   modalPhone: document.getElementById("modal-phone"),
   modalStatus: document.getElementById("modal-status"),
+  modalRole: document.getElementById("modal-role"),
   btnSaveInstructorInfo: document.getElementById("btn-save-instructor-info"),
   modalDocsContainer: document.getElementById("modal-docs-container"),
   submissionDetailsClose: document.getElementById("submission-details-close")
@@ -63,9 +64,25 @@ const DOC_TYPES = {
   11: "안전관리 서약서"
 };
 
-function getRequiredDocs(status) {
-  if (status === "교원") return [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  else return [1, 2, 4, 5, 6, 7, 8, 9, 10, 11];
+
+function getRequiredDocs(status, role) {
+  // status: "교원", "일반"
+  // role: "주강사", "보조강사", "운영요원", "안전요원"
+  role = role || "주강사"; // Default to 주강사 if undefined
+  
+  if (status === "교원") {
+    if (role === "주강사") return [3, 4, 5, 6, 8];
+    if (role === "보조강사") return [6];
+    if (role === "운영요원") return [1, 2, 7, 9, 10, 11];
+    if (role === "안전요원") return [1, 2, 7, 11];
+  } else {
+    // 프리랜서(일반)
+    if (role === "주강사") return [1, 2, 4, 5, 6];
+    if (role === "보조강사") return [6];
+    if (role === "운영요원") return [1, 2, 7, 9, 10, 11];
+    if (role === "안전요원") return [1, 2, 7, 11];
+  }
+  return [];
 }
 
 function checkMissingSubFiles(docId, files) {
@@ -229,7 +246,7 @@ function renderInstructorDocs() {
       if (dEnd && subDate > dEnd) return false;
     }
     
-    const required = getRequiredDocs(doc.status || "일반");
+    const required = getRequiredDocs(doc.status || "일반", doc.role || "주강사");
     let missingStr = "";
     required.forEach(docId => {
       const missing = checkMissingSubFiles(docId, doc.files);
@@ -255,7 +272,7 @@ function renderInstructorDocs() {
   }
 
   filteredDocs.forEach((doc, index) => {
-    const required = getRequiredDocs(doc.status || "일반");
+    const required = getRequiredDocs(doc.status || "일반", doc.role || "주강사");
     let approvedCount = 0;
     let missingDocs = [];
 
@@ -323,7 +340,7 @@ function updateDashboardStats() {
   }
   let completeUsers = 0, pendingUsers = 0;
   state.instructorDocs.forEach(doc => {
-    const required = getRequiredDocs(doc.status || "일반");
+    const required = getRequiredDocs(doc.status || "일반", doc.role || "주강사");
     let approvedCount = 0;
     required.forEach(docId => {
       if (checkMissingSubFiles(docId, doc.files).length === 0) approvedCount++;
@@ -349,6 +366,7 @@ function showSubmissionDetails(id) {
   if (DOM.modalStudentName) DOM.modalStudentName.value = doc.name || '';
   if (DOM.modalPhone) DOM.modalPhone.value = doc.phone || '';
   if (DOM.modalStatus) DOM.modalStatus.value = doc.status || '일반';
+  if (DOM.modalRole) DOM.modalRole.value = doc.role || '주강사';
   renderModalDocs(doc);
   if (DOM.submissionDetailsModal) {
     DOM.submissionDetailsModal.style.display = 'flex';
@@ -407,6 +425,7 @@ if (DOM.btnSaveInstructorInfo) {
       state.instructorDocs[docIndex].name = DOM.modalStudentName.value;
       state.instructorDocs[docIndex].phone = DOM.modalPhone.value;
       state.instructorDocs[docIndex].status = DOM.modalStatus.value;
+      state.instructorDocs[docIndex].role = DOM.modalRole.value;
       if (isOnline) {
         try { await APIService.updateInstructorDoc(currentEditingId, state.instructorDocs[docIndex]); } catch(e) {}
       }
@@ -475,7 +494,7 @@ async function handleExcelFile(file) {
         pendingExcelData.push({
           id: `inst-${Date.now()}-${Math.random().toString(36).substring(2,9)}`,
           name, phone, school, region, className: program,
-          status: "일반", first_submission_date: null, files: {}
+          status: "일반", role: "주강사", first_submission_date: null, files: {}
         });
       }
     }
