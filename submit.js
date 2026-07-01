@@ -1,3 +1,24 @@
+
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch(`${API_URL}/public/programs`);
+    const data = await res.json();
+    const programSelect = document.getElementById('auth-program');
+    if (data.success && data.data && data.data.length > 0) {
+      programSelect.innerHTML = '<option value="" disabled selected>프로그램을 선택하세요</option>';
+      data.data.forEach(p => {
+        programSelect.innerHTML += `<option value="${p}">${p}</option>`;
+      });
+      programSelect.disabled = false;
+    } else {
+      programSelect.innerHTML = '<option value="" disabled selected>등록된 프로그램이 없습니다.</option>';
+    }
+  } catch(e) {
+    console.error(e);
+    document.getElementById('auth-program').innerHTML = '<option value="" disabled selected>서버 연결 실패</option>';
+  }
+});
+
 const API_URL = "http://localhost:3000/api";
 let currentStep = 0;
 let instructorData = null;
@@ -144,8 +165,13 @@ function renderDocInputs() {
 DOM.btnAuth.addEventListener('click', async () => {
   const name = DOM.authName.value.trim();
   const phone = DOM.authPhone.value.trim();
+  const className = document.getElementById('auth-program').value;
   
-  if(!name || !phone) {
+  if(!className || !name || !phone) {
+    DOM.authError.textContent = "프로그램 선택, 이름, 전화번호를 모두 입력해주세요.";
+    DOM.authError.classList.remove('hidden');
+    return;
+  }
     DOM.authError.textContent = "이름과 전화번호를 모두 입력해주세요.";
     DOM.authError.classList.remove('hidden');
     return;
@@ -157,7 +183,7 @@ DOM.btnAuth.addEventListener('click', async () => {
     const res = await fetch(`${API_URL}/instructor/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone })
+      body: JSON.stringify({ className, name, phone })
     });
     const data = await res.json();
     
@@ -237,6 +263,7 @@ DOM.submitForm.addEventListener('submit', async (e) => {
   formData.append('name', instructorData.name);
   formData.append('phone', instructorData.phone);
   formData.append('school', instructorData.school);
+  formData.append('className', instructorData.className);
   formData.append('first_submission_date', instructorData.first_submission_date || '');
   
   const status = document.querySelector('input[name="instructor-status"]:checked').value;
