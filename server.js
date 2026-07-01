@@ -485,7 +485,7 @@ app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
 
 // Public GET Programs
 app.get("/api/public/programs", (req, res) => {
-  const db = readDb();
+  const db = readInstructorDocsDb();
   const programs = new Set();
   db.forEach(d => {
     if (d.className) programs.add(d.className);
@@ -496,7 +496,7 @@ app.get("/api/public/programs", (req, res) => {
 // Instructor Auth updated to require className
 app.post("/api/instructor/auth", (req, res) => {
   const { className, name, phone } = req.body;
-  const db = readDb();
+  const db = readInstructorDocsDb();
   // Using className to authenticate exactly
   const inst = db.find(d => d.className === className && d.name === name && d.phone === phone);
   if (inst) {
