@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+const fs = require('fs');
+
+const indexHtmlCode = `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -235,3 +237,7 @@
   <script src="./app.js"></script>
 </body>
 </html>
+`;
+
+fs.writeFileSync('index.html', indexHtmlCode, 'utf8');
+console.log('Successfully updated index.html');

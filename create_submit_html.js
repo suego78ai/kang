@@ -1,0 +1,189 @@
+const fs = require('fs');
+
+const submitHtmlCode = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>강사 서류 제출 시스템</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: { extend: { colors: { inha: { navy: '#1e3a8a', blue: '#1e40af', cyan: '#06b6d4', light: '#f1f5f9', dark: '#0f172a' } } } }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans flex flex-col items-center py-10 px-4">
+
+  <div class="max-w-3xl w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+    <div class="bg-inha-navy p-8 text-center text-white relative overflow-hidden">
+      <div class="absolute -right-10 -top-10 opacity-10"><i class="fa-solid fa-file-signature text-9xl"></i></div>
+      <h1 class="text-3xl font-extrabold relative z-10 tracking-tight">디지털새싹 강사 서류 제출</h1>
+      <p class="mt-2 text-indigo-100 font-medium relative z-10">4단계 맞춤형 업로드 마법사</p>
+    </div>
+
+    <div class="p-8">
+      <!-- Step Indicator -->
+      <div id="step-indicator" class="flex justify-between items-center mb-8 relative hidden">
+        <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -z-10 -translate-y-1/2"></div>
+        <div id="progress-bar" class="absolute top-1/2 left-0 w-0 h-1 bg-inha-blue -z-10 -translate-y-1/2 transition-all duration-300"></div>
+        
+        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold bg-inha-blue text-white shadow-md border-4 border-white" id="indicator-1">1</div>
+        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold bg-slate-200 text-slate-400 shadow-md border-4 border-white transition-colors" id="indicator-2">2</div>
+        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold bg-slate-200 text-slate-400 shadow-md border-4 border-white transition-colors" id="indicator-3">3</div>
+        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold bg-slate-200 text-slate-400 shadow-md border-4 border-white transition-colors" id="indicator-4">4</div>
+      </div>
+
+      <form id="submit-form" class="space-y-6">
+        
+        <!-- STEP 0: Authentication -->
+        <div id="step-0" class="step-section block space-y-5">
+          <div class="text-center mb-6">
+            <h2 class="text-xl font-bold text-slate-800">본인 인증</h2>
+            <p class="text-sm text-slate-500">관리자가 사전 등록한 명단에서 조회합니다.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">강사명</label>
+            <input type="text" id="auth-name" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-inha-blue focus:border-inha-blue transition" placeholder="이름을 입력하세요" required>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">전화번호</label>
+            <input type="text" id="auth-phone" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-inha-blue focus:border-inha-blue transition" placeholder="010-XXXX-XXXX" required>
+          </div>
+          <button type="button" id="btn-auth" class="w-full bg-inha-navy hover:bg-inha-blue text-white font-bold py-3 px-4 rounded-lg shadow mt-2 transition">
+            조회 및 시작하기
+          </button>
+          <div id="auth-error" class="text-rose-500 text-sm font-bold text-center mt-2 hidden"></div>
+        </div>
+
+        <!-- STEP 1: Basic Info & Type -->
+        <div id="step-1" class="step-section hidden space-y-5">
+          <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">1단계: 인적사항 및 유형 선택</h2>
+          
+          <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <p class="text-sm text-slate-500 mb-1">조회된 정보</p>
+            <div class="font-bold text-slate-800" id="info-display">학교: -, 프로그램: -</div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-2">강사 신분 선택 (필수 서류가 변경됩니다)</label>
+            <div class="grid grid-cols-2 gap-4">
+              <label class="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-inha-blue transition type-radio">
+                <input type="radio" name="instructor-status" value="일반" class="hidden" checked>
+                <i class="fa-solid fa-user-tie text-3xl text-slate-400 mb-2 icon"></i>
+                <span class="font-bold text-slate-700">일반 강사 (프리랜서)</span>
+              </label>
+              <label class="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-inha-blue transition type-radio">
+                <input type="radio" name="instructor-status" value="교원" class="hidden">
+                <i class="fa-solid fa-chalkboard-user text-3xl text-slate-400 mb-2 icon"></i>
+                <span class="font-bold text-slate-700">현직 교원</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Basic Agreements -->
+        <div id="step-2" class="step-section hidden space-y-5">
+          <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">2단계: 기본 서약서 서명 및 업로드</h2>
+          <p class="text-sm text-slate-500 mb-4">서명된 문서의 스캔본이나 PDF 파일을 업로드해주세요.</p>
+
+          <div id="doc-group-step2" class="space-y-4">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- STEP 3: Proof Docs -->
+        <div id="step-3" class="step-section hidden space-y-5">
+          <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">3단계: 증빙 서류 업로드</h2>
+          
+          <div id="doc-group-step3-basic" class="space-y-4 mb-6"></div>
+
+          <div class="bg-indigo-50 border border-indigo-100 p-5 rounded-xl">
+            <h3 class="font-bold text-indigo-900 mb-3"><i class="fa-solid fa-id-card text-indigo-500"></i> 공통 필수 첨부 (강사비/근로계약서용)</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">신분증 사본</label>
+                <input type="file" name="common_id" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 transition">
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">통장 사본</label>
+                <input type="file" name="common_bank" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 transition">
+              </div>
+            </div>
+          </div>
+
+          <div id="doc-group-step3-extra" class="space-y-4 mt-6">
+            <div class="p-4 border border-slate-200 rounded-lg bg-white">
+              <label class="block text-sm font-bold text-slate-800 mb-1">6. 이력서 (강사비 신청서 부속)</label>
+              <input type="file" name="doc6_resume" class="w-full text-sm mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700">
+            </div>
+            <div class="p-4 border border-slate-200 rounded-lg bg-white">
+              <label class="block text-sm font-bold text-slate-800 mb-1">7. 일일 근로일지 (근로계약서 부속)</label>
+              <input type="file" name="doc7_log" class="w-full text-sm mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700">
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Checklists (Multi-upload) -->
+        <div id="step-4" class="step-section hidden space-y-5">
+          <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">4단계: 매회 제출 체크리스트</h2>
+          <p class="text-sm text-slate-500 mb-4">수업 회차별로 작성된 운영 전/후 체크리스트를 모두 추가해 주세요.</p>
+          
+          <div class="bg-white border border-slate-200 p-5 rounded-xl">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="font-bold text-slate-800">9. 운영 전 체크리스트</h3>
+              <button type="button" class="text-xs bg-inha-light text-inha-navy px-2 py-1 rounded font-bold btn-add-round" data-target="9">+ 회차 추가</button>
+            </div>
+            <div id="round-container-9" class="space-y-3">
+              <div class="flex gap-2 items-center">
+                <span class="text-sm font-bold text-slate-500 w-12 text-center">1회차</span>
+                <input type="file" name="doc9_1" class="flex-1 text-sm border border-slate-200 rounded p-1">
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 p-5 rounded-xl">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="font-bold text-slate-800">10. 운영 후 체크리스트</h3>
+              <button type="button" class="text-xs bg-inha-light text-inha-navy px-2 py-1 rounded font-bold btn-add-round" data-target="10">+ 회차 추가</button>
+            </div>
+            <div id="round-container-10" class="space-y-3">
+              <div class="flex gap-2 items-center">
+                <span class="text-sm font-bold text-slate-500 w-12 text-center">1회차</span>
+                <input type="file" name="doc10_1" class="flex-1 text-sm border border-slate-200 rounded p-1">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Completion View -->
+        <div id="step-complete" class="step-section hidden text-center space-y-5 py-10">
+          <i class="fa-solid fa-circle-check text-6xl text-emerald-500 mb-2"></i>
+          <h2 class="text-2xl font-extrabold text-slate-800">제출이 완료되었습니다!</h2>
+          <p class="text-slate-500">담당 관리자가 확인 후 필요한 경우 연락을 드릴 수 있습니다.<br>수고하셨습니다.</p>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div id="nav-buttons" class="hidden flex gap-3 mt-8 pt-6 border-t border-slate-100">
+          <button type="button" id="btn-prev" class="px-6 py-3 rounded-lg font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition hidden">이전</button>
+          <button type="button" id="btn-next" class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-inha-navy hover:bg-inha-blue transition">다음 단계로</button>
+          <button type="submit" id="btn-submit" class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition hidden">최종 제출하기</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+  <script src="./submit.js"></script>
+</body>
+</html>
+`;
+
+fs.writeFileSync('submit.html', submitHtmlCode, 'utf8');
+console.log('Successfully created submit.html');

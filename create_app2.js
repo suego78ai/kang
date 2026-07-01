@@ -1,4 +1,6 @@
-let state = {
+const fs = require('fs');
+
+const appJsCode = `let state = {
   instructorDocs: [],
   isAdminAuthenticated: sessionStorage.getItem("digitalsaessak-admin-auth") === "true",
   adminToken: sessionStorage.getItem("digitalsaessak-admin-token") || ""
@@ -79,7 +81,7 @@ function checkMissingSubFiles(docId, files) {
   } else if (docId === 9 || docId === 10) {
     if (!files[docId] || files[docId].length === 0) missing.push("파일없음");
   } else {
-    if (!files[`doc${docId}`]) missing.push("미제출");
+    if (!files[\`doc\${docId}\`]) missing.push("미제출");
   }
   return missing;
 }
@@ -89,7 +91,7 @@ const APIService = {
     try {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), 1000);
-      const res = await fetch(`${API_URL}/health`, { signal: controller.signal });
+      const res = await fetch(\`\${API_URL}/health\`, { signal: controller.signal });
       clearTimeout(id);
       return res.ok;
     } catch (e) {
@@ -97,7 +99,7 @@ const APIService = {
     }
   },
   async login(id, password) {
-    const res = await fetch(`${API_URL}/admin/login`, {
+    const res = await fetch(\`\${API_URL}/admin/login\`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, password })
@@ -111,16 +113,16 @@ const APIService = {
   },
   async getInstructorDocs() {
     const headers = {};
-    if (state.adminToken) headers["Authorization"] = `Bearer ${state.adminToken}`;
-    const res = await fetch(`${API_URL}/admin/instructors`, { headers });
+    if (state.adminToken) headers["Authorization"] = \`Bearer \${state.adminToken}\`;
+    const res = await fetch(\`\${API_URL}/admin/instructors\`, { headers });
     if (!res.ok) throw new Error("Failed to fetch documents");
     const data = await res.json();
     return data.data;
   },
   async updateInstructorDoc(id, docData) {
     const headers = { "Content-Type": "application/json" };
-    if (state.adminToken) headers["Authorization"] = `Bearer ${state.adminToken}`;
-    const res = await fetch(`${API_URL}/admin/instructors/${id}`, {
+    if (state.adminToken) headers["Authorization"] = \`Bearer \${state.adminToken}\`;
+    const res = await fetch(\`\${API_URL}/admin/instructors/\${id}\`, {
       method: "PATCH",
       headers,
       body: JSON.stringify(docData)
@@ -130,8 +132,8 @@ const APIService = {
   },
   async downloadZip(instructorIds) {
     const headers = { "Content-Type": "application/json" };
-    if (state.adminToken) headers["Authorization"] = `Bearer ${state.adminToken}`;
-    const res = await fetch(`${API_URL}/admin/download-zip`, {
+    if (state.adminToken) headers["Authorization"] = \`Bearer \${state.adminToken}\`;
+    const res = await fetch(\`\${API_URL}/admin/download-zip\`, {
       method: "POST",
       headers,
       body: JSON.stringify({ instructorIds })
@@ -143,7 +145,7 @@ const APIService = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `선택_강사_서류_${Date.now()}.zip`;
+    a.download = \`선택_강사_서류_\${Date.now()}.zip\`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -182,7 +184,7 @@ function renderInstructorDocs() {
     required.forEach(docId => {
       const missing = checkMissingSubFiles(docId, doc.files);
       if (missing.length > 0) {
-        missingStr += ` ${docId}번 ${DOC_TYPES[docId]} ${missing.join(',')}`;
+        missingStr += \` \${docId}번 \${DOC_TYPES[docId]} \${missing.join(',')}\`;
       }
     });
     doc._missingStr = missingStr;
@@ -193,14 +195,14 @@ function renderInstructorDocs() {
   });
 
   if (filteredDocs.length === 0) {
-    DOM.spreadsheetTbody.innerHTML = `
+    DOM.spreadsheetTbody.innerHTML = \`
       <tr>
         <td colspan="7" class="py-8 text-center text-slate-500">
           <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300"></i>
           <p>등록된 강사가 없거나 검색 결과가 없습니다.</p>
         </td>
       </tr>
-    `;
+    \`;
     updateDashboardStats();
     return;
   }
@@ -216,9 +218,9 @@ function renderInstructorDocs() {
         approvedCount++;
       } else {
         if (docId === 6 || docId === 7) {
-          missingDocs.push(`${docId}번(${missing.join(',')})`);
+          missingDocs.push(\`\${docId}번(\${missing.join(',')})\`);
         } else {
-          missingDocs.push(`${docId}번`);
+          missingDocs.push(\`\${docId}번\`);
         }
       }
     });
@@ -226,36 +228,36 @@ function renderInstructorDocs() {
     const isComplete = required.length > 0 && approvedCount === required.length;
     let statusHtml = '';
     if (isComplete) {
-      statusHtml = `<span class="text-emerald-600 font-bold text-sm">완료 (${approvedCount}/${required.length})</span>`;
+      statusHtml = \`<span class="text-emerald-600 font-bold text-sm">완료 (\${approvedCount}/\${required.length})</span>\`;
     } else {
-      statusHtml = `
-        <div class="text-rose-600 font-bold text-sm mb-1">❌ 미제출 (${approvedCount}/${required.length})</div>
-        <div class="text-[11px] text-slate-500 leading-tight max-w-[250px] truncate" title="${missingDocs.join(', ')}">
-          ${missingDocs.join(', ')}
+      statusHtml = \`
+        <div class="text-rose-600 font-bold text-sm mb-1">❌ 미제출 (\${approvedCount}/\${required.length})</div>
+        <div class="text-[11px] text-slate-500 leading-tight max-w-[250px] truncate" title="\${missingDocs.join(', ')}">
+          \${missingDocs.join(', ')}
         </div>
-      `;
+      \`;
     }
 
     const tr = document.createElement("tr");
     tr.className = "border-b border-slate-100 hover:bg-slate-50 transition";
-    tr.innerHTML = `
+    tr.innerHTML = \`
       <td class="p-3 border-r text-center">
-        <input type="checkbox" class="chk-row rounded text-inha-blue focus:ring-inha-blue" value="${doc.id}">
+        <input type="checkbox" class="chk-row rounded text-inha-blue focus:ring-inha-blue" value="\${doc.id}">
       </td>
       <td class="p-3 border-r">
-        <div class="font-bold text-slate-800 text-sm truncate">${doc.school || '-'}</div>
-        <div class="text-[10px] text-slate-400">${doc.className || '-'}</div>
+        <div class="font-bold text-slate-800 text-sm truncate">\${doc.school || '-'}</div>
+        <div class="text-[10px] text-slate-400">\${doc.className || '-'}</div>
       </td>
-      <td class="p-3 border-r font-bold text-slate-800 text-center">${doc.name || '-'}</td>
-      <td class="p-3 border-r text-slate-600 text-center">${doc.phone || '-'}</td>
+      <td class="p-3 border-r font-bold text-slate-800 text-center">\${doc.name || '-'}</td>
+      <td class="p-3 border-r text-slate-600 text-center">\${doc.phone || '-'}</td>
       <td class="p-3 border-r text-center">
-        <span class="${doc.status === '교원' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'} px-2 py-1 rounded text-xs font-bold">${doc.status || '일반'}</span>
+        <span class="\${doc.status === '교원' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'} px-2 py-1 rounded text-xs font-bold">\${doc.status || '일반'}</span>
       </td>
-      <td class="p-3 border-r">${statusHtml}</td>
+      <td class="p-3 border-r">\${statusHtml}</td>
       <td class="p-3 text-center">
-        <button class="btn-detail bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition" data-id="${doc.id}">상세</button>
+        <button class="btn-detail bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition" data-id="\${doc.id}">상세</button>
       </td>
-    `;
+    \`;
     DOM.spreadsheetTbody.appendChild(tr);
   });
 
@@ -293,10 +295,10 @@ function updateDashboardStats() {
 
   const rate = state.instructorDocs.length === 0 ? 0 : Math.round((completeUsers / state.instructorDocs.length) * 100);
 
-  if (DOM.overallCompletionRate) DOM.overallCompletionRate.textContent = `${rate}%`;
-  if (DOM.overallProgressBar) DOM.overallProgressBar.style.width = `${rate}%`;
-  if (DOM.countComplete) DOM.countComplete.textContent = `${completeUsers}명`;
-  if (DOM.countPending) DOM.countPending.textContent = `${pendingUsers}명`;
+  if (DOM.overallCompletionRate) DOM.overallCompletionRate.textContent = \`\${rate}%\`;
+  if (DOM.overallProgressBar) DOM.overallProgressBar.style.width = \`\${rate}%\`;
+  if (DOM.countComplete) DOM.countComplete.textContent = \`\${completeUsers}명\`;
+  if (DOM.countPending) DOM.countPending.textContent = \`\${pendingUsers}명\`;
 }
 
 let currentEditingId = null;
@@ -329,7 +331,7 @@ function renderModalDocs(doc) {
   for (let i = 1; i <= 11; i++) {
     const isRequired = required.includes(i);
     const bgClass = isRequired ? 'bg-white' : 'bg-slate-100 opacity-60 grayscale';
-    const reqBadge = isRequired ? `<span class="bg-rose-100 text-rose-600 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">필수</span>` : `<span class="bg-slate-200 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">비대상</span>`;
+    const reqBadge = isRequired ? \`<span class="bg-rose-100 text-rose-600 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">필수</span>\` : \`<span class="bg-slate-200 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">비대상</span>\`;
     
     let missingInfo = '';
     let filesHtml = '';
@@ -337,42 +339,42 @@ function renderModalDocs(doc) {
     if (isRequired) {
       const missing = checkMissingSubFiles(i, doc.files);
       if (missing.length === 0) {
-        missingInfo = `<span class="text-emerald-600 text-xs font-bold"><i class="fa-solid fa-check"></i> 모두 제출됨</span>`;
+        missingInfo = \`<span class="text-emerald-600 text-xs font-bold"><i class="fa-solid fa-check"></i> 모두 제출됨</span>\`;
       } else {
-        missingInfo = `<span class="text-rose-500 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 미제출: ${missing.join(', ')}</span>`;
+        missingInfo = \`<span class="text-rose-500 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 미제출: \${missing.join(', ')}</span>\`;
       }
       
       // Render file list if submitted
       if (doc.files) {
         if (i === 6) {
           ['common_id', 'common_bank', 'doc6_resume'].forEach(key => {
-            if (doc.files[key]) filesHtml += `<div class="text-xs text-slate-500">${doc.files[key].zipName}</div>`;
+            if (doc.files[key]) filesHtml += \`<div class="text-xs text-slate-500">\${doc.files[key].zipName}</div>\`;
           });
         } else if (i === 7) {
           ['common_id_for_doc7', 'common_bank_for_doc7', 'doc7_log'].forEach(key => {
-            if (doc.files[key]) filesHtml += `<div class="text-xs text-slate-500">${doc.files[key].zipName}</div>`;
+            if (doc.files[key]) filesHtml += \`<div class="text-xs text-slate-500">\${doc.files[key].zipName}</div>\`;
           });
         } else if (i === 9 || i === 10) {
           if (doc.files[i]) {
             doc.files[i].forEach(f => {
-              filesHtml += `<div class="text-xs text-slate-500">${f.round}회차: ${f.zipName}</div>`;
+              filesHtml += \`<div class="text-xs text-slate-500">\${f.round}회차: \${f.zipName}</div>\`;
             });
           }
         } else {
-          if (doc.files[`doc${i}`]) filesHtml += `<div class="text-xs text-slate-500">${doc.files[`doc${i}`].zipName}</div>`;
+          if (doc.files[\`doc\${i}\`]) filesHtml += \`<div class="text-xs text-slate-500">\${doc.files[\`doc\${i}\`].zipName}</div>\`;
         }
       }
     }
 
-    const html = `
-      <div class="p-3 border border-slate-200 rounded-lg ${bgClass} flex flex-col gap-2">
+    const html = \`
+      <div class="p-3 border border-slate-200 rounded-lg \${bgClass} flex flex-col gap-2">
         <div class="flex justify-between items-center">
-          <div class="text-sm font-bold text-slate-800">${i}. ${DOC_TYPES[i]} ${reqBadge}</div>
-          <div>${missingInfo}</div>
+          <div class="text-sm font-bold text-slate-800">\${i}. \${DOC_TYPES[i]} \${reqBadge}</div>
+          <div>\${missingInfo}</div>
         </div>
-        ${filesHtml ? `<div class="mt-1 p-2 bg-slate-50 rounded border border-slate-200">${filesHtml}</div>` : ''}
+        \${filesHtml ? \`<div class="mt-1 p-2 bg-slate-50 rounded border border-slate-200">\${filesHtml}</div>\` : ''}
       </div>
-    `;
+    \`;
     DOM.modalDocsContainer.insertAdjacentHTML('beforeend', html);
   }
 }
@@ -471,7 +473,7 @@ async function handleExcelFile(file) {
         const exists = state.instructorDocs.find(d => d.name === name && d.phone === phone);
         if (!exists) {
           const newDoc = {
-            id: `inst-${Date.now()}-${Math.random().toString(36).substring(2,9)}`,
+            id: \`inst-\${Date.now()}-\${Math.random().toString(36).substring(2,9)}\`,
             name, phone, school, region, className: program,
             status: "일반", // default
             first_submission_date: null,
@@ -482,9 +484,9 @@ async function handleExcelFile(file) {
              try {
                 // To keep it simple, we use a single update endpoint.
                 // In production, we'd use a bulk POST endpoint. For now, just add to state and we will patch individually.
-                await fetch(`${API_URL}/admin/instructors/bulk-add`, {
+                await fetch(\`\${API_URL}/admin/instructors/bulk-add\`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.adminToken}` },
+                  headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${state.adminToken}\` },
                   body: JSON.stringify(newDoc)
                 });
              } catch(e) { console.error(e); }
@@ -495,7 +497,7 @@ async function handleExcelFile(file) {
         }
       }
     }
-    showToast(`${addedCount}명의 강사 명단이 등록되었습니다.`, "success");
+    showToast(\`\${addedCount}명의 강사 명단이 등록되었습니다.\`, "success");
     if (isOnline) {
       await initInstructorDocs();
     } else {
@@ -514,8 +516,8 @@ function showToast(message, type = "info") {
   if (type === "error") { bgColor = "bg-rose-600"; icon = "fa-circle-xmark"; }
   if (type === "warning") { bgColor = "bg-amber-500"; icon = "fa-triangle-exclamation"; }
 
-  toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm font-medium transform transition-all duration-300 translate-y-4 opacity-0`;
-  toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+  toast.className = \`\${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm font-medium transform transition-all duration-300 translate-y-4 opacity-0\`;
+  toast.innerHTML = \`<i class="fa-solid \${icon}"></i> <span>\${message}</span>\`;
   
   DOM.toastContainer.appendChild(toast);
   setTimeout(() => { toast.classList.remove("translate-y-4", "opacity-0"); }, 10);
@@ -599,3 +601,7 @@ if (DOM.btnAdminRefresh) {
         showToast("데이터를 새로고침했습니다.", "success");
     });
 }
+`;
+
+fs.writeFileSync('app.js', appJsCode, 'utf8');
+console.log('Successfully updated app.js');
