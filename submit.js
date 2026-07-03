@@ -56,12 +56,16 @@ const DOM = {
 };
 
 const DOC_NAMES = {
-  1: "성범죄 경력 조회 동의서",
+  1: "보안서약서 및 개인정보 동의서",
   2: "성범죄 및 아동학대 사실 부존재 확인 서약서",
   3: "현직 교원 출강 안내 및 확인서",
   4: "프로그램 결과보고서",
   5: "식·다과 수령 확인서",
+  6: "이력서 (신분증/통장 포함)",
+  7: "일일 근로일지 (신분증/통장 포함)",
   8: "디지털새싹 프로그램 출강 확인서",
+  9: "운영 전 체크리스트(매회)",
+  10: "운영 후 체크리스트(매회)",
   11: "안전관리 서약서"
 };
 
@@ -188,8 +192,8 @@ function renderDocInputs() {
   if (DOM.docGroupStep3Basic) DOM.docGroupStep3Basic.innerHTML = '';
   
   reqs.forEach(docId => {
-    // skip 6, 7 as they are extra inputs
-    if (docId === 6 || docId === 7) return;
+    // skip 6, 7, 9, 10 as they are extra inputs
+    if ([6, 7, 9, 10].includes(docId)) return;
     const container = [1, 2, 8, 11].includes(docId) ? DOM.docGroupStep2 : DOM.docGroupStep3Basic;
     if (container) {
       let isSubmitted = false;
