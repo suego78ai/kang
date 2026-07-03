@@ -567,6 +567,15 @@ app.patch("/api/admin/instructors/:id", adminAuth, (req, res) => {
   res.json({ success: true, data: db[index] });
 });
 
+// POST /api/admin/instructors/reset
+app.post("/api/admin/instructors/reset", adminAuth, (req, res) => {
+  if (writeInstructorDocsDb([])) {
+    res.json({ success: true, message: "모든 데이터가 초기화되었습니다." });
+  } else {
+    res.status(500).json({ error: "초기화에 실패했습니다." });
+  }
+});
+
 
 // Start Server
 app.listen(PORT, () => {
