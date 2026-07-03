@@ -1,42 +1,27 @@
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
-const multer = require("multer");
-const AdmZip = require("adm-zip");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const AdmZip = require('adm-zip');
+const mongoose = require('mongoose');
+
+const Application = require('./models/Application');
+const Course = require('./models/Course');
+const Instructor = require('./models/Instructor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, "db.json");
-const COURSES_FILE = path.join(__dirname, "courses.json");
-const INSTRUCTOR_DOCS_FILE = path.join(__dirname, "instructor_docs.json");
 
-const DEFAULT_INSTRUCTOR_DOCS = [];
-
-// Helper: Read Instructor Docs DB
-function readInstructorDocsDb() {
-  try {
-    if (!fs.existsSync(INSTRUCTOR_DOCS_FILE)) {
-      fs.writeFileSync(INSTRUCTOR_DOCS_FILE, JSON.stringify(DEFAULT_INSTRUCTOR_DOCS, null, 2), "utf8");
-      return DEFAULT_INSTRUCTOR_DOCS;
-    }
-    const data = fs.readFileSync(INSTRUCTOR_DOCS_FILE, "utf8");
-    return JSON.parse(data || "[]");
-  } catch (err) {
-    console.error("강사 서류 데이터베이스 파일 읽기 에러:", err);
-    return [];
-  }
-}
-
-// Helper: Write Instructor Docs DB
-function writeInstructorDocsDb(data) {
-  try {
-    fs.writeFileSync(INSTRUCTOR_DOCS_FILE, JSON.stringify(data, null, 2), "utf8");
-    return true;
-  } catch (err) {
-    console.error("강사 서류 데이터베이스 파일 쓰기 에러:", err);
-    return false;
-  }
+// Connect to MongoDB
+const MONGO_URI = process.env.MONGO_URI;
+if (MONGO_URI && !MONGO_URI.includes('<db_password>')) {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB 연결 성공!'))
+    .catch(err => console.error('MongoDB 연결 에러:', err));
+} else {
+  console.warn('경고: MONGO_URI가 설정되지 않아 MongoDB 연결을 스킵합니다.');
 }
 
 // Middleware
@@ -45,23 +30,23 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // Ensure uploads folder exists and expose it statically
-const UPLOADS_DIR = path.join(__dirname, "uploads");
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
-app.use("/uploads", express.static(UPLOADS_DIR));
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Multer Storage Setup for Instructor Documents
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const instructorName = req.body.instructorName || "unknown_instructor";
+    const instructorName = req.body.instructorName || 'unknown_instructor';
     const d = new Date();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
-    // Naming folder: "강사이름-제출날짜"
+    // Naming folder: '강사이름-제출날짜'
     const folderName = `${instructorName.trim()}-${dateStr}`;
     const uploadPath = path.join(UPLOADS_DIR, folderName);
     
@@ -86,502 +71,310 @@ const upload = multer({ storage }).fields([
   { name: 'docFile5', maxCount: 1 }
 ]);
 
-// Helper: Read Courses DB
-function readCoursesDb() {
-  try {
-    if (!fs.existsSync(COURSES_FILE)) {
-      return [];
-    }
-    const data = fs.readFileSync(COURSES_FILE, "utf8");
-    return JSON.parse(data || "[]");
-  } catch (err) {
-    console.error("교육과정 데이터베이스 파일 읽기 에러:", err);
-    return [];
-  }
-}
-
-// Helper: Write Courses DB
-function writeCoursesDb(data) {
-  try {
-    fs.writeFileSync(COURSES_FILE, JSON.stringify(data, null, 2), "utf8");
-    return true;
-  } catch (err) {
-    console.error("교육과정 데이터베이스 파일 쓰기 에러:", err);
-    return false;
-  }
-}
-
-// Helper: Read DB
-function readDb() {
-  try {
-    if (!fs.existsSync(DB_FILE)) {
-      fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2), "utf8");
-      return [];
-    }
-    const data = fs.readFileSync(DB_FILE, "utf8");
-    return JSON.parse(data || "[]");
-  } catch (err) {
-    console.error("데이터베이스 파일 읽기 에러:", err);
-    return [];
-  }
-}
-
-// Helper: Write DB
-function writeDb(data) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf8");
-    return true;
-  } catch (err) {
-    console.error("데이터베이스 파일 쓰기 에러:", err);
-    return false;
-  }
-}
-
 // Admin Credentials & Auth Config
-const ADMIN_ID = "dsadmin";
-const ADMIN_PW = "ds2026!";
-const ADMIN_TOKEN = "dsadmin-session-token-2026";
+const ADMIN_ID = 'dsadmin';
+const ADMIN_PW = 'ds2026!';
+const ADMIN_TOKEN = 'dsadmin-session-token-2026';
 
 // Auth Middleware
 function adminAuth(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "인증 토큰이 누락되었습니다." });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: '인증 토큰이 누락되었습니다.' });
   }
-  const token = authHeader.substring(7); // Remove "Bearer "
+  const token = authHeader.substring(7);
   if (token !== ADMIN_TOKEN) {
-    return res.status(401).json({ error: "유효하지 않은 관리자 인증 토큰입니다." });
+    return res.status(401).json({ error: '유효하지 않은 관리자 인증 토큰입니다.' });
   }
   next();
 }
 
 // API Endpoints
 
-// 1. Health Check & Mode Verification
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "실시간 데이터베이스 서버가 정상 구동 중입니다." });
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: '실시간 데이터베이스 서버가 정상 구동 중입니다.' });
 });
 
-// Admin Login Endpoint
-app.post("/api/admin/login", (req, res) => {
+app.post('/api/admin/login', (req, res) => {
   const { id, password } = req.body;
   if (id === ADMIN_ID && password === ADMIN_PW) {
     return res.json({ success: true, token: ADMIN_TOKEN });
   }
-  res.status(401).json({ success: false, error: "ID 또는 비밀번호가 올바르지 않습니다." });
+  res.status(401).json({ success: false, error: 'ID 또는 비밀번호가 올바르지 않습니다.' });
 });
 
-// 2. Get Applications (Search or List All)
-app.get("/api/applications", (req, res) => {
-  const { studentName, guardianPhone } = req.query;
-  const db = readDb();
-
-  // If specific search parameters are provided, perform lookup (Public)
-  if (studentName && guardianPhone) {
-    // Standardize phone format (remove whitespace, compare exactly)
-    const cleanPhone = guardianPhone.trim();
-    const cleanName = studentName.trim();
-
-    const matched = db.filter(app => 
-      app.studentName === cleanName && 
-      app.guardianPhone === cleanPhone
-    );
-    return res.json(matched);
-  }
-
-  // Otherwise, return all applications (Requires Admin Authentication)
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ") || authHeader.substring(7) !== ADMIN_TOKEN) {
-    return res.status(401).json({ error: "권한이 없습니다. 관리자 로그인이 필요합니다." });
-  }
-
-  res.json(db);
-});
-
-// 2.5 Get Single Application
-app.get("/api/applications/:id", (req, res) => {
-  const { id } = req.params;
-  const db = readDb();
-  const found = db.find(app => app.id === id);
-  if (!found) {
-    return res.status(404).json({ error: "해당 신청 내역을 찾을 수 없습니다." });
-  }
-  res.json(found);
-});
-
-// 3. Create Application
-app.post("/api/applications", (req, res) => {
-  const application = req.body;
-
-  if (!application.studentName || !application.guardianPhone || !application.courseId) {
-    return res.status(400).json({ error: "필수 입력 항목(학생명, 보호자연락처, 강좌ID)이 누락되었습니다." });
-  }
-
-  const db = readDb();
-
-  // Ensure unique ID
-  const appId = application.id || `DS-${Math.floor(100000 + Math.random() * 900000)}`;
-  
-  const newApp = {
-    ...application,
-    id: appId,
-    status: application.status || "pending",
-    date: application.date || new Date().toLocaleDateString("ko-KR", {
-      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
-    })
-  };
-
-  db.unshift(newApp);
-  const success = writeDb(db);
-
-  if (success) {
-    res.status(201).json(newApp);
-  } else {
-    res.status(500).json({ error: "데이터베이스 저장에 실패했습니다." });
-  }
-});
-
-// 4. Update Application Status (Approve/Reject)
-app.patch("/api/applications/:id/status", adminAuth, (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  if (!status || !["pending", "approved", "rejected"].includes(status)) {
-    return res.status(400).json({ error: "올바르지 않은 상태 값입니다. (pending, approved, rejected 중 하나)" });
-  }
-
-  const db = readDb();
-  const appIndex = db.findIndex(app => app.id === id);
-
-  if (appIndex === -1) {
-    return res.status(404).json({ error: "해당 신청 내역을 찾을 수 없습니다." });
-  }
-
-  db[appIndex].status = status;
-  const success = writeDb(db);
-
-  if (success) {
-    res.json(db[appIndex]);
-  } else {
-    res.status(500).json({ error: "상태 변경 저장에 실패했습니다." });
-  }
-});
-
-// 5. Delete/Cancel Application
-app.delete("/api/applications/:id", (req, res) => {
-  const { id } = req.params;
-  const db = readDb();
-  const initialLength = db.length;
-  
-  const filtered = db.filter(app => app.id !== id);
-
-  if (filtered.length === initialLength) {
-    return res.status(404).json({ error: "해당 신청 내역을 찾을 수 없습니다." });
-  }
-
-  const success = writeDb(filtered);
-
-  if (success) {
-    res.json({ message: "신청이 성공적으로 취소되었습니다.", id });
-  } else {
-    res.status(500).json({ error: "신청 취소 처리에 실패했습니다." });
-  }
-});
-
-// 6. Get Dynamic Courses (Public)
-app.get("/api/courses", (req, res) => {
-  const courses = readCoursesDb();
-  res.json(courses);
-});
-
-// 7. Save Imported Courses (Requires Admin Auth)
-app.post("/api/courses", adminAuth, (req, res) => {
-  const { courses } = req.body;
-  if (!courses || !Array.isArray(courses)) {
-    return res.status(400).json({ error: "올바르지 않은 교육과정 데이터 형식입니다." });
-  }
-  const success = writeCoursesDb(courses);
-  if (success) {
-    res.json({ success: true, message: "교육과정이 성공적으로 등록되었습니다." });
-  } else {
-    res.status(500).json({ error: "교육과정 등록 저장에 실패했습니다." });
-  }
-});
-
-// 8. Reset Dynamic Courses (Requires Admin Auth)
-app.post("/api/courses/reset", adminAuth, (req, res) => {
-  const success = writeCoursesDb([]);
-  if (success) {
-    res.json({ success: true, message: "교육과정이 기본값으로 초기화되었습니다." });
-  } else {
-    res.status(500).json({ error: "교육과정 초기화에 실패했습니다." });
-  }
-});
-
-// 9. Get Instructor Documents (Public)
-app.get("/api/instructor-docs", (req, res) => {
-  const docs = readInstructorDocsDb();
-  res.json(docs);
-});
-
-// 10. Save Instructor Documents (Requires Admin Auth)
-app.post("/api/instructor-docs", adminAuth, (req, res) => {
-  const { docs } = req.body;
-  if (!docs || !Array.isArray(docs)) {
-    return res.status(400).json({ error: "올바르지 않은 강사 서류 데이터 형식입니다." });
-  }
-  const success = writeInstructorDocsDb(docs);
-  if (success) {
-    res.json({ success: true, message: "강사 서류 현황이 성공적으로 저장되었습니다." });
-  } else {
-    res.status(500).json({ error: "강사 서류 현황 저장에 실패했습니다." });
-  }
-});
-
-// 11. Reset Instructor Documents (Requires Admin Auth)
-app.post("/api/instructor-docs/reset", adminAuth, (req, res) => {
-  const success = writeInstructorDocsDb(DEFAULT_INSTRUCTOR_DOCS);
-  if (success) {
-    res.json({ success: true, message: "강사 서류 현황이 기본 데모값으로 복구되었습니다.", docs: DEFAULT_INSTRUCTOR_DOCS });
-  } else {
-    res.status(500).json({ error: "강사 서류 현황 복구에 실패했습니다." });
-  }
-});
-
-// 12. Instructor Documents File Upload (Public - Instructors Submit Docs)
-app.post("/api/instructor-docs/upload", (req, res) => {
-  upload(req, res, (err) => {
-    if (err) {
-      console.error("파일 업로드 에러:", err);
-      return res.status(500).json({ error: "파일 업로드 처리 중 에러가 발생했습니다." });
-    }
-    
-    const { instructorName, email, className, phone, status, role } = req.body;
-    if (!instructorName || !className || !phone) {
-      return res.status(400).json({ error: "필수 정보(강사명, 분반 프로그램명, 연락처)가 누락되었습니다." });
-    }
-    
-    const db = readInstructorDocsDb();
-    const existingIndex = db.findIndex(i => i.name === instructorName && i.phone === phone && i.className === className);
-    
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    
-    const folderName = `${instructorName.trim()}-${dateStr}`;
-    const folderPath = `/uploads/${folderName}`;
-    
-    let target;
-    if (existingIndex !== -1) {
-      target = db[existingIndex];
-      if (email) target.email = email;
-      target.folder = folderPath;
-      if (status) target.status = status;
-      if (role) target.role = role;
-      
-      target.last_submission_datetime = new Date().toLocaleString('ko-KR');
-      if (!target.first_submission_date) target.first_submission_date = `${year}${month}${day}`;
-    } else {
-      target = {
-        id: `inst-manual-${Date.now()}`,
-        className, name: instructorName, email: email || "", phone, folder: folderPath,
-        first_submission_date: `${year}${month}${day}`,
-        last_submission_datetime: new Date().toLocaleString('ko-KR'),
-        status: status || "일반", role: role || "주강사",
-        files: {}
-      };
-      db.push(target);
-    }
-    
-    target.files = target.files || {};
-    if (req.files && Array.isArray(req.files)) {
-      req.files.forEach(file => {
-        const field = file.fieldname;
-        if (field.startsWith('doc9_')) {
-          target.files['9'] = target.files['9'] || [];
-          target.files['9'].push(file.filename);
-        } else if (field.startsWith('doc10_')) {
-          target.files['10'] = target.files['10'] || [];
-          target.files['10'].push(file.filename);
-        } else {
-          // If the fieldname is like "doc1", remove "doc" and use the number as key, else just keep fieldname.
-          if (/^doc\d+$/.test(field)) {
-            const num = field.replace('doc', '');
-            target.files[num] = target.files[num] || [];
-            target.files[num].push(file.filename);
-          } else {
-            target.files[field] = target.files[field] || [];
-            target.files[field].push(file.filename);
-          }
-        }
-      });
-    }
-    
-    writeInstructorDocsDb(db);
-    return res.status(existingIndex !== -1 ? 200 : 201).json({ success: true, message: "서류 업로드가 완료되었습니다.", record: target });
-  });
-});
-
-// 13. Download Instructor Documents Folder as ZIP (Supports Admin/Process filters)
-app.get("/api/instructor-docs/download-zip/:id", (req, res) => {
-  const { id } = req.params;
-  const { type } = req.query; // admin (행정서류 1, 2) | process (진행서류 3, 4, 5) | all
-  const db = readInstructorDocsDb();
-  const record = db.find(inst => inst.id === parseInt(id));
-  
-  if (!record) {
-    return res.status(404).json({ error: "해당 강사 서류 기록을 찾을 수 없습니다." });
-  }
-  
-  if (!record.folder || record.folder.startsWith("http")) {
-    return res.status(400).json({ error: "실제 서버에 업로드된 로컬 서류만 일괄 다운로드(ZIP)가 가능합니다." });
-  }
-  
-  const folderName = path.basename(record.folder);
-  const targetDir = path.join(UPLOADS_DIR, folderName);
-  
-  if (!fs.existsSync(targetDir)) {
-    return res.status(404).json({ error: "서버 상에 서류 보관 폴더가 존재하지 않습니다." });
-  }
-  
+app.get('/api/applications', async (req, res) => {
   try {
-    const zip = new AdmZip();
-    let zipSuffix = "전체서류";
-    
-    if (type === "admin") {
-      zipSuffix = "행정서류";
-      // doc1, doc2 파일 필터링 추가
-      [record.doc1, record.doc2].forEach(fileVal => {
-        const isFile = fileVal && fileVal !== "완료" && fileVal !== "검토중" && fileVal !== "미제출";
-        if (isFile) {
-          const filePath = path.join(targetDir, fileVal);
-          if (fs.existsSync(filePath)) {
-            zip.addLocalFile(filePath);
-          }
-        }
-      });
-    } else if (type === "process") {
-      zipSuffix = "진행서류";
-      // doc3, doc4, doc5 파일 필터링 추가
-      [record.doc3, record.doc4, record.doc5].forEach(fileVal => {
-        const isFile = fileVal && fileVal !== "완료" && fileVal !== "검토중" && fileVal !== "미제출";
-        if (isFile) {
-          const filePath = path.join(targetDir, fileVal);
-          if (fs.existsSync(filePath)) {
-            zip.addLocalFile(filePath);
-          }
-        }
-      });
-    } else {
-      // 전체 압축
-      zip.addLocalFolder(targetDir);
+    const { studentName, guardianPhone } = req.query;
+    if (studentName && guardianPhone) {
+      const cleanPhone = guardianPhone.trim();
+      const cleanName = studentName.trim();
+      const matched = await Application.find({ studentName: cleanName, guardianPhone: cleanPhone }).sort({ createdAt: -1 });
+      return res.json(matched);
     }
-    
-    // 압축할 파일 항목 체크
-    if (zip.getEntries().length === 0) {
-      return res.status(400).json({ error: `선택하신 분류(${zipSuffix})에 제출 완료된 물리 서류 파일이 존재하지 않습니다.` });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.substring(7) !== ADMIN_TOKEN) {
+      return res.status(401).json({ error: '권한이 없습니다. 관리자 로그인이 필요합니다.' });
     }
-    
-    const zipName = `${folderName}_${zipSuffix}.zip`;
-    const buffer = zip.toBuffer();
-    
-    // Set headers
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", `attachment; filename=${encodeURIComponent(zipName)}`);
-    res.send(buffer);
-  } catch (err) {
-    console.error("ZIP 압축 에러:", err);
-    res.status(500).json({ error: "ZIP 파일 압축 생성에 실패했습니다." });
-  }
+    const apps = await Application.find({}).sort({ createdAt: -1 });
+    res.json(apps);
+  } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
 });
 
+app.get('/api/applications/:id', async (req, res) => {
+  try {
+    const found = await Application.findOne({ id: req.params.id });
+    if (!found) return res.status(404).json({ error: '해당 신청 내역을 찾을 수 없습니다.' });
+    res.json(found);
+  } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
+});
 
-// Public GET Programs
-app.get("/api/public/programs", (req, res) => {
-  const db = readInstructorDocsDb();
-  const programs = new Set();
-  db.forEach(d => {
-    if (d.className) programs.add(d.className);
+app.post('/api/applications', async (req, res) => {
+  try {
+    const application = req.body;
+    if (!application.studentName || !application.guardianPhone || !application.courseId) {
+      return res.status(400).json({ error: '필수 입력 항목 누락' });
+    }
+    const appId = application.id || `DS-${Math.floor(100000 + Math.random() * 900000)}`;
+    const newApp = new Application({
+      ...application,
+      id: appId,
+      status: application.status || 'pending',
+      date: application.date || new Date().toLocaleDateString('ko-KR', {
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+      })
+    });
+    await newApp.save();
+    res.status(201).json(newApp);
+  } catch (err) { res.status(500).json({ error: '저장 실패' }); }
+});
+
+app.patch('/api/applications/:id/status', adminAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status || !["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: '올바르지 않은 상태 값' });
+    }
+    const updated = await Application.findOneAndUpdate({ id: req.params.id }, { status }, { new: true });
+    if (!updated) return res.status(404).json({ error: '찾을 수 없음' });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ error: '업데이트 실패' }); }
+});
+
+app.delete('/api/applications/:id', async (req, res) => {
+  try {
+    const deleted = await Application.findOneAndDelete({ id: req.params.id });
+    if (!deleted) return res.status(404).json({ error: '찾을 수 없음' });
+    res.json({ message: '취소 성공', id: req.params.id });
+  } catch (err) { res.status(500).json({ error: '삭제 실패' }); }
+});
+
+app.get('/api/courses', async (req, res) => {
+  try {
+    const courses = await Course.find({});
+    res.json(courses);
+  } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
+});
+
+app.post('/api/courses', adminAuth, async (req, res) => {
+  try {
+    const { courses } = req.body;
+    if (!courses || !Array.isArray(courses)) return res.status(400).json({ error: '형식 에러' });
+    await Course.deleteMany({});
+    if (courses.length > 0) await Course.insertMany(courses);
+    res.json({ success: true, message: '등록 성공' });
+  } catch (err) { res.status(500).json({ error: '저장 실패' }); }
+});
+
+app.post('/api/courses/reset', adminAuth, async (req, res) => {
+  try {
+    await Course.deleteMany({});
+    res.json({ success: true, message: '초기화 성공' });
+  } catch (err) { res.status(500).json({ error: '초기화 실패' }); }
+});
+
+app.get('/api/instructor-docs', async (req, res) => {
+  try {
+    const docs = await Instructor.find({}).sort({ createdAt: -1 });
+    res.json(docs);
+  } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
+});
+
+app.post('/api/instructor-docs', adminAuth, async (req, res) => {
+  try {
+    const { docs } = req.body;
+    if (!docs || !Array.isArray(docs)) return res.status(400).json({ error: '형식 에러' });
+    await Instructor.deleteMany({});
+    if (docs.length > 0) await Instructor.insertMany(docs);
+    res.json({ success: true, message: '저장 성공' });
+  } catch (err) { res.status(500).json({ error: '저장 실패' }); }
+});
+
+app.post('/api/instructor-docs/reset', adminAuth, async (req, res) => {
+  try {
+    await Instructor.deleteMany({});
+    res.json({ success: true, message: '초기화 성공', docs: [] });
+  } catch (err) { res.status(500).json({ error: '초기화 실패' }); }
+});
+
+app.post('/api/instructor-docs/upload', (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) return res.status(500).json({ error: '업로드 에러' });
+    try {
+      const { instructorName, email, className, phone, status, role } = req.body;
+      if (!instructorName || !className || !phone) return res.status(400).json({ error: '필수 정보 누락' });
+      
+      const d = new Date();
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const folderPath = `/uploads/${instructorName.trim()}-${dateStr}`;
+      
+      let instructor = await Instructor.findOne({ name: instructorName, phone, className });
+      if (!instructor) {
+        instructor = new Instructor({
+          id: `inst-${Date.now()}`,
+          className, name: instructorName, email: email || '', phone, folder: folderPath,
+          first_submission_date: dateStr.replace(/-/g, ''),
+          last_submission_datetime: d.toLocaleString('ko-KR'),
+          status: status || '일반', role: role || '주강사',
+          files: {}
+        });
+      } else {
+        if (email) instructor.email = email;
+        instructor.folder = folderPath;
+        if (status) instructor.status = status;
+        if (role) instructor.role = role;
+        instructor.last_submission_datetime = d.toLocaleString('ko-KR');
+        if (!instructor.first_submission_date) instructor.first_submission_date = dateStr.replace(/-/g, '');
+      }
+      
+      const currentFiles = instructor.files || {};
+      if (req.files && Array.isArray(req.files)) {
+        req.files.forEach(file => {
+          const field = file.fieldname;
+          if (field.startsWith('doc9_')) {
+            currentFiles['9'] = currentFiles['9'] || [];
+            currentFiles['9'].push(file.filename);
+          } else if (field.startsWith('doc10_')) {
+            currentFiles['10'] = currentFiles['10'] || [];
+            currentFiles['10'].push(file.filename);
+          } else if (/^doc\d+$/.test(field)) {
+            const num = field.replace('doc', '');
+            currentFiles[num] = currentFiles[num] || [];
+            currentFiles[num].push(file.filename);
+          } else {
+            currentFiles[field] = currentFiles[field] || [];
+            currentFiles[field].push(file.filename);
+          }
+        });
+      }
+      instructor.files = currentFiles;
+      instructor.markModified('files');
+      await instructor.save();
+      res.status(200).json({ success: true, message: '업로드 성공', record: instructor });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'DB 에러' });
+    }
   });
-  res.json({ success: true, data: Array.from(programs) });
 });
 
-// Instructor Auth updated to require className
-app.post("/api/instructor/auth", (req, res) => {
-  const { className, name, phone } = req.body;
-  const db = readInstructorDocsDb();
-  // Using className to authenticate exactly
-  const inst = db.find(d => d.className === className && d.name === name && d.phone === phone);
-  if (inst) {
-    res.json({ success: true, data: inst });
-  } else {
-    res.status(404).json({ error: "등록된 명단에 없습니다. 관리자에게 문의하세요." });
-  }
+app.get('/api/instructor-docs/download-zip/:id', async (req, res) => {
+  try {
+    const record = await Instructor.findOne({ id: req.params.id });
+    if (!record) return res.status(404).json({ error: '찾을 수 없음' });
+    if (!record.folder || record.folder.startsWith('http')) return res.status(400).json({ error: '로컬 서류만 다운로드 가능' });
+    
+    const folderName = path.basename(record.folder);
+    const targetDir = path.join(UPLOADS_DIR, folderName);
+    if (!fs.existsSync(targetDir)) return res.status(404).json({ error: '폴더 없음' });
+    
+    const zip = new AdmZip();
+    const type = req.query.type;
+    let addedCount = 0;
+    
+    const validFiles = record.files || {};
+    let allowedKeys = [];
+    if (type === 'admin') allowedKeys = ['1', '2'];
+    else if (type === 'process') allowedKeys = ['3', '4', '5'];
+    else allowedKeys = Object.keys(validFiles);
+    
+    allowedKeys.forEach(key => {
+      const arr = validFiles[key];
+      if (Array.isArray(arr)) {
+        arr.forEach(filename => {
+          const fp = path.join(targetDir, filename);
+          if (fs.existsSync(fp)) { zip.addLocalFile(fp); addedCount++; }
+        });
+      }
+    });
+    
+    if (addedCount === 0) return res.status(400).json({ error: '파일 없음' });
+    const zipSuffix = type === 'admin' ? '행정서류' : (type === 'process' ? '진행서류' : '전체서류');
+    const zipName = `${record.name}_${zipSuffix}.zip`;
+    const data = zip.toBuffer();
+    
+    res.set('Content-Type', 'application/zip');
+    res.set('Content-Disposition', `attachment; filename="${encodeURIComponent(zipName)}"`);
+    res.set('Content-Length', data.length);
+    res.send(data);
+  } catch (err) { res.status(500).json({ error: 'ZIP 에러' }); }
 });
 
-
-// ==========================================
-// NEW ADMIN APIs FOR INSTRUCTOR DOCS
-// ==========================================
-
-// GET /api/admin/instructors
-app.get("/api/admin/instructors", adminAuth, (req, res) => {
-  const db = readInstructorDocsDb();
-  res.json({ success: true, data: db });
+app.get('/api/public/programs', async (req, res) => {
+  try {
+    const docs = await Instructor.find({});
+    const programs = new Set();
+    docs.forEach(d => { if (d.className) programs.add(d.className); });
+    res.json({ success: true, data: Array.from(programs) });
+  } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
 });
 
-// POST /api/admin/instructors/bulk-add
-app.post("/api/admin/instructors/bulk-add", adminAuth, (req, res) => {
-  const newDoc = req.body;
-  if (!newDoc || !newDoc.id) {
-    return res.status(400).json({ error: "유효하지 않은 데이터입니다." });
-  }
-  const db = readInstructorDocsDb();
-  
-  // Check if exists
-  const exists = db.find(d => d.name === newDoc.name && d.phone === newDoc.phone);
-  if (exists) {
-    return res.status(409).json({ error: "이미 존재하는 강사입니다." });
-  }
-  
-  db.unshift(newDoc);
-  writeInstructorDocsDb(db);
-  res.status(201).json({ success: true, data: newDoc });
+app.post('/api/instructor/auth', async (req, res) => {
+  try {
+    const { className, name, phone } = req.body;
+    const inst = await Instructor.findOne({ className, name, phone });
+    if (inst) res.json({ success: true, data: inst });
+    else res.status(404).json({ error: '명단 없음' });
+  } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
 });
 
-// PATCH /api/admin/instructors/:id
-app.patch("/api/admin/instructors/:id", adminAuth, (req, res) => {
-  const { id } = req.params;
-  const updateData = req.body;
-  const db = readInstructorDocsDb();
-  
-  const index = db.findIndex(d => d.id === id || String(d.id) === String(id));
-  if (index === -1) {
-    return res.status(404).json({ error: "해당 강사를 찾을 수 없습니다." });
-  }
-  
-  db[index] = { ...db[index], ...updateData };
-  writeInstructorDocsDb(db);
-  res.json({ success: true, data: db[index] });
+app.get('/api/admin/instructors', adminAuth, async (req, res) => {
+  try {
+    const docs = await Instructor.find({}).sort({ createdAt: -1 });
+    res.json({ success: true, data: docs });
+  } catch (err) { res.status(500).json({ error: 'DB 에러' }); }
 });
 
-// POST /api/admin/instructors/reset
-app.post("/api/admin/instructors/reset", adminAuth, (req, res) => {
-  if (writeInstructorDocsDb([])) {
-    res.json({ success: true, message: "모든 데이터가 초기화되었습니다." });
-  } else {
-    res.status(500).json({ error: "초기화에 실패했습니다." });
-  }
+app.post('/api/admin/instructors/bulk-add', adminAuth, async (req, res) => {
+  try {
+    const newDoc = req.body;
+    if (!newDoc || !newDoc.id) return res.status(400).json({ error: '유효하지 않은 데이터' });
+    const exists = await Instructor.findOne({ name: newDoc.name, phone: newDoc.phone });
+    if (exists) return res.status(409).json({ error: '이미 존재함' });
+    const instructor = new Instructor(newDoc);
+    await instructor.save();
+    res.status(201).json({ success: true, data: instructor });
+  } catch (err) { res.status(500).json({ error: '저장 에러' }); }
 });
 
+app.patch('/api/admin/instructors/:id', adminAuth, async (req, res) => {
+  try {
+    const updated = await Instructor.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: '찾을 수 없음' });
+    res.json({ success: true, data: updated });
+  } catch (err) { res.status(500).json({ error: '업데이트 에러' }); }
+});
 
-// Start Server
+app.post('/api/admin/instructors/reset', adminAuth, async (req, res) => {
+  try {
+    await Instructor.deleteMany({});
+    res.json({ success: true, message: '데이터 초기화됨' });
+  } catch (err) { res.status(500).json({ error: '초기화 에러' }); }
+});
+
 app.listen(PORT, () => {
-  console.log(`===================================================`);
-  console.log(` 디지털새싹 SW·AI 교육캠프 백엔드 서버 구동 완료`);
+  console.log('===================================================');
+  console.log(' 디지털새싹 백엔드 구동 완료 (MongoDB 연동)');
   console.log(` 포트 번호: http://localhost:${PORT}`);
-  console.log(` 로컬 DB 저장소 파일: ${DB_FILE}`);
-  console.log(`===================================================`);
+  console.log('===================================================');
 });
