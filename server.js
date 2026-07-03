@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://kang:s0328702105!@kang.cvgr4u2.mongodb.net/kang?retryWrites=true&w=majority&appName=kang';
 if (MONGO_URI && !MONGO_URI.includes('<db_password>')) {
   mongoose.connect(MONGO_URI)
     .then(() => console.log('MongoDB 연결 성공!'))
