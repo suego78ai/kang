@@ -117,7 +117,7 @@ function getRequiredDocs(status, role) {
   } else {
     // 프리랜서(일반)
     if (role === "주강사") return [1, 2, 4, 5, 6];
-    if (role === "보조강사") return [6];
+    if (role === "보조강사") return [1, 2, 6];
     if (role === "운영요원") return [1, 2, 7, 9, 10, 11];
     if (role === "안전요원") return [1, 2, 7, 11];
   }
@@ -343,11 +343,23 @@ DOM.btnPrev.addEventListener('click', () => {
   if (currentStep > 1) { currentStep--; updateUI(); }
 });
 
-DOM.btnSubmit.addEventListener('click', async (e) => {
+DOM.submitForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!instructorData) return;
-  DOM.btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 업로드 중...';
-  DOM.btnSubmit.disabled = true;
+  await saveDraftData(true);
+});
+
+const btnSaveDraft = document.getElementById('btn-save-draft');
+if (btnSaveDraft) {
+  btnSaveDraft.addEventListener('click', async () => {
+    await saveDraftData(false);
+  });
+}
+
+async function saveDraftData(isFinal) {
+  const btn = isFinal ? DOM.btnSubmit : document.getElementById('btn-save-draft');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
+  btn.disabled = true;
 
   const formData = new FormData(DOM.submitForm);
   const status = document.querySelector('input[name="instructor-status"]:checked').value;
@@ -358,6 +370,7 @@ DOM.btnSubmit.addEventListener('click', async (e) => {
   formData.append('instructorName', instructorData.name);
   formData.append('className', instructorData.className);
   formData.append('phone', instructorData.phone);
+  formData.append('isFinal', isFinal);
 
   try {
     const res = await fetch(`${API_URL}/instructor-docs/upload`, {
@@ -367,9 +380,14 @@ DOM.btnSubmit.addEventListener('click', async (e) => {
     const data = await res.json();
     if (data.success) {
       instructorData = data.record; // Use updated record from server
-      currentStep = 5;
-      renderDashboard();
-      updateUI();
+      if (isFinal) {
+        currentStep = 5;
+        renderDashboard();
+        updateUI();
+      } else {
+        showToast("임시 저장되었습니다. 관리자 페이지에서 확인할 수 있습니다.", "success");
+        renderDocInputs(); // Refresh UI to show newly saved badges
+      }
     } else {
       showToast(data.error || "업로드 실패", "error");
     }

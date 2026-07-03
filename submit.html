@@ -139,7 +139,7 @@
           
           <div id="doc-group-step3-basic" class="space-y-4 mb-6"></div>
 
-          <div class="bg-indigo-50 border border-indigo-100 p-5 rounded-xl">
+          <div id="common-docs-container" class="bg-indigo-50 border border-indigo-100 p-5 rounded-xl">
             <h3 class="font-bold text-indigo-900 mb-3"><i class="fa-solid fa-id-card text-indigo-500"></i> 공통 필수 첨부 (강사비/근로계약서용)</h3>
             <div class="space-y-4">
               <div>
@@ -154,11 +154,11 @@
           </div>
 
           <div id="doc-group-step3-extra" class="space-y-4 mt-6">
-            <div class="p-4 border border-slate-200 rounded-lg bg-white">
+            <div id="doc6-container" class="p-4 border border-slate-200 rounded-lg bg-white">
               <label class="block text-sm font-bold text-slate-800 mb-1">6. 이력서 (강사비 신청서 부속)</label>
               <input type="file" name="doc6_resume" class="w-full text-sm mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700">
             </div>
-            <div class="p-4 border border-slate-200 rounded-lg bg-white">
+            <div id="doc7-container" class="p-4 border border-slate-200 rounded-lg bg-white">
               <label class="block text-sm font-bold text-slate-800 mb-1">7. 일일 근로일지 (근로계약서 부속)</label>
               <input type="file" name="doc7_log" class="w-full text-sm mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700">
             </div>
@@ -170,7 +170,7 @@
           <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">4단계: 매회 제출 체크리스트</h2>
           <p class="text-sm text-slate-500 mb-4">수업 회차별로 작성된 운영 전/후 체크리스트를 모두 추가해 주세요.</p>
           
-          <div class="bg-white border border-slate-200 p-5 rounded-xl">
+          <div id="doc9-container" class="bg-white border border-slate-200 p-5 rounded-xl">
             <div class="flex justify-between items-center mb-3">
               <h3 class="font-bold text-slate-800">9. 운영 전 체크리스트</h3>
             </div>
@@ -181,7 +181,7 @@
             </div>
           </div>
 
-          <div class="bg-white border border-slate-200 p-5 rounded-xl">
+          <div id="doc10-container" class="bg-white border border-slate-200 p-5 rounded-xl">
             <div class="flex justify-between items-center mb-3">
               <h3 class="font-bold text-slate-800">10. 운영 후 체크리스트</h3>
             </div>
@@ -222,8 +222,9 @@
         </div>
 
         <!-- Navigation Buttons -->
-        <div id="nav-buttons" class="hidden flex gap-3 mt-8 pt-6 border-t border-slate-100">
+        <div id="nav-buttons" class="hidden flex flex-wrap sm:flex-nowrap gap-3 mt-8 pt-6 border-t border-slate-100">
           <button type="button" id="btn-prev" class="px-6 py-3 rounded-lg font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition hidden">이전</button>
+          <button type="button" id="btn-save-draft" class="px-6 py-3 rounded-lg font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition"><i class="fa-solid fa-floppy-disk mr-1"></i> 임시 저장</button>
           <button type="button" id="btn-next" class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-inha-navy hover:bg-inha-blue transition">다음 단계로</button>
           <button type="submit" id="btn-submit" class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition hidden">최종 제출하기</button>
         </div>

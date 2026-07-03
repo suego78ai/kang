@@ -81,7 +81,7 @@ function getRequiredDocs(status, role) {
   } else {
     // 프리랜서(일반)
     if (role === "주강사") return [1, 2, 4, 5, 6];
-    if (role === "보조강사") return [6];
+    if (role === "보조강사") return [1, 2, 6];
     if (role === "운영요원") return [1, 2, 7, 9, 10, 11];
     if (role === "안전요원") return [1, 2, 7, 11];
   }
