@@ -408,13 +408,18 @@ function renderDashboard() {
     }
     
     const btnEdit = document.getElementById('btn-edit-submission');
+    const btnFinish = document.getElementById('btn-finish-submission');
+    
     if (btnEdit) {
       if (submittedDocs === 0) {
         btnEdit.innerHTML = '<i class="fa-solid fa-upload"></i> 서류 제출 시작하기';
+        if(btnFinish) btnFinish.classList.add('hidden');
       } else if (rate === 100) {
         btnEdit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 제출한 서류 수정하기';
+        if(btnFinish) btnFinish.classList.remove('hidden');
       } else {
         btnEdit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 미제출 서류 마저 등록하기 (수정)';
+        if(btnFinish) btnFinish.classList.add('hidden');
       }
     }
   }
@@ -425,5 +430,12 @@ if (btnEdit) {
   btnEdit.addEventListener('click', () => {
     currentStep = 1; // 수정하기 버튼 누르면 1단계로 이동
     updateUI();
+  });
+}
+
+const btnFinish = document.getElementById('btn-finish-submission');
+if (btnFinish) {
+  btnFinish.addEventListener('click', () => {
+    window.location.href = 'https://digitalsaessak-camp.onrender.com/submit.html';
   });
 }
