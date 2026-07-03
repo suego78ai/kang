@@ -63,13 +63,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage }).fields([
-  { name: 'docFile1', maxCount: 1 },
-  { name: 'docFile2', maxCount: 1 },
-  { name: 'docFile3', maxCount: 1 },
-  { name: 'docFile4', maxCount: 1 },
-  { name: 'docFile5', maxCount: 1 }
-]);
+const upload = multer({ storage }).any();
 
 // Admin Credentials & Auth Config
 const ADMIN_ID = 'dsadmin';
