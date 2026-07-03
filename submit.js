@@ -220,18 +220,55 @@ function renderDocInputs() {
     }
   });
 
-  // Update hardcoded inputs (Step 3)
-  ['common_id', 'common_bank', 'doc6_resume', 'doc7_log'].forEach(fieldName => {
+  // Handle dynamic visibility of containers
+  const c6 = document.getElementById('doc6-container');
+  const c7 = document.getElementById('doc7-container');
+  const commonDocs = document.getElementById('common-docs-container');
+  const c9 = document.getElementById('doc9-container');
+  const c10 = document.getElementById('doc10-container');
+
+  if (c6) c6.classList.toggle('hidden', !reqs.includes(6));
+  if (c7) c7.classList.toggle('hidden', !reqs.includes(7));
+  if (commonDocs) commonDocs.classList.toggle('hidden', !reqs.includes(6) && !reqs.includes(7));
+  if (c9) c9.classList.toggle('hidden', !reqs.includes(9));
+  if (c10) c10.classList.toggle('hidden', !reqs.includes(10));
+
+  // Update hardcoded inputs (Step 3 and Step 4)
+  ['common_id', 'common_bank', 'doc6_resume', 'doc7_log', 'doc9', 'doc10'].forEach(fieldName => {
     const input = document.querySelector(`input[name="${fieldName}"]`);
     if (input) {
-      const label = input.previousElementSibling;
-      // remove old badge if exists
-      const oldBadge = label.querySelector('.submit-badge');
-      if (oldBadge) oldBadge.remove();
+      let isReq = false;
+      if (fieldName === 'common_id' || fieldName === 'common_bank') isReq = reqs.includes(6) || reqs.includes(7);
+      else if (fieldName === 'doc6_resume') isReq = reqs.includes(6);
+      else if (fieldName === 'doc7_log') isReq = reqs.includes(7);
+      else if (fieldName === 'doc9') isReq = reqs.includes(9);
+      else if (fieldName === 'doc10') isReq = reqs.includes(10);
+
+      let titleElem = (fieldName === 'doc9' || fieldName === 'doc10') 
+        ? input.closest('.bg-white').querySelector('h3') 
+        : input.previousElementSibling;
       
-      if (instructorData && instructorData.files && instructorData.files[fieldName]) {
-        label.innerHTML += `<span class="submit-badge text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold ml-2 relative top-[-1px]">✅ 기존 제출됨</span>`;
+      if (titleElem) {
+        const oldBadge = titleElem.querySelector('.submit-badge');
+        if (oldBadge) oldBadge.remove();
       }
+      
+      let isSub = false;
+      if (instructorData && instructorData.files) {
+         if (fieldName === 'doc9' || fieldName === 'doc10') {
+           const num = fieldName.replace('doc', '');
+           isSub = instructorData.files[num] && instructorData.files[num].length > 0;
+         } else {
+           isSub = !!instructorData.files[fieldName];
+         }
+      }
+
+      if (isSub && titleElem) {
+        titleElem.innerHTML += `<span class="submit-badge text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold ml-2 relative top-[-1px]">✅ 기존 제출됨</span>`;
+      }
+      
+      if (isReq && !isSub) input.setAttribute('required', 'true');
+      else input.removeAttribute('required');
     }
   });
 }
