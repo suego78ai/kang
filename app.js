@@ -4,7 +4,7 @@ let state = {
   isAdminAuthenticated: sessionStorage.getItem("digitalsaessak-admin-auth") === "true",
   adminToken: sessionStorage.getItem("digitalsaessak-admin-token") || ""
 };
-const API_URL = "http://localhost:3000/api";
+const API_URL = "/api";
 let isOnline = false;
 let currentPage = 1;
 const itemsPerPage = 20;
