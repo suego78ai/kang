@@ -96,13 +96,13 @@ function checkMissingSubFiles(docId, files) {
     if (!files.common_bank) missing.push("통장사본");
     if (!files.doc6_resume) missing.push("이력서");
   } else if (docId === 7) {
-    if (!files.common_id_for_doc7) missing.push("신분증");
-    if (!files.common_bank_for_doc7) missing.push("통장사본");
+    if (!files.common_id) missing.push("신분증");
+    if (!files.common_bank) missing.push("통장사본");
     if (!files.doc7_log) missing.push("일일 근로일지");
   } else if (docId === 9 || docId === 10) {
     if (!files[docId] || files[docId].length === 0) missing.push("파일없음");
   } else {
-    if (!files[`doc${docId}`]) missing.push("미제출");
+    if (!files[docId] || files[docId].length === 0) missing.push("미제출");
   }
   return missing;
 }
@@ -414,16 +414,18 @@ function renderModalDocs(doc) {
       if (doc.files) {
         if (i === 6) {
           ['common_id', 'common_bank', 'doc6_resume'].forEach(key => {
-            if (doc.files[key]) filesHtml += `<div class="text-xs text-slate-500">${doc.files[key].zipName}</div>`;
+            if (doc.files[key] && doc.files[key].length > 0) filesHtml += `<div class="text-xs text-slate-500">${doc.files[key].join('<br>')}</div>`;
           });
         } else if (i === 7) {
-          ['common_id_for_doc7', 'common_bank_for_doc7', 'doc7_log'].forEach(key => {
-            if (doc.files[key]) filesHtml += `<div class="text-xs text-slate-500">${doc.files[key].zipName}</div>`;
+          ['common_id', 'common_bank', 'doc7_log'].forEach(key => {
+            if (doc.files[key] && doc.files[key].length > 0) filesHtml += `<div class="text-xs text-slate-500">${doc.files[key].join('<br>')}</div>`;
           });
         } else if (i === 9 || i === 10) {
-          if (doc.files[i]) doc.files[i].forEach(f => { filesHtml += `<div class="text-xs text-slate-500">${f.round}회차: ${f.zipName}</div>`; });
+          if (doc.files[i] && doc.files[i].length > 0) {
+            doc.files[i].forEach((f, idx) => { filesHtml += `<div class="text-xs text-slate-500">${f}</div>`; });
+          }
         } else {
-          if (doc.files[`doc${i}`]) filesHtml += `<div class="text-xs text-slate-500">${doc.files[`doc${i}`].zipName}</div>`;
+          if (doc.files[i] && doc.files[i].length > 0) filesHtml += `<div class="text-xs text-slate-500">${doc.files[i].join('<br>')}</div>`;
         }
       }
     }
