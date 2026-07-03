@@ -394,10 +394,10 @@ async function saveDraftData(isFinal) {
   } catch(e) {
     showToast("서버 오류가 발생했습니다.", "error");
   } finally {
-    DOM.btnSubmit.innerHTML = '최종 제출하기';
-    DOM.btnSubmit.disabled = false;
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
-});
+}
 
 function renderDashboard() {
   const listEl = document.getElementById('dashboard-file-list');
