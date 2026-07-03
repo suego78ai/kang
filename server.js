@@ -349,7 +349,7 @@ app.post('/api/admin/instructors/bulk-add', adminAuth, async (req, res) => {
   try {
     const newDoc = req.body;
     if (!newDoc || !newDoc.id) return res.status(400).json({ error: '유효하지 않은 데이터' });
-    const exists = await Instructor.findOne({ name: newDoc.name, phone: newDoc.phone });
+    const exists = await Instructor.findOne({ name: newDoc.name, phone: newDoc.phone, className: newDoc.className });
     if (exists) return res.status(409).json({ error: '이미 존재함' });
     const instructor = new Instructor(newDoc);
     await instructor.save();
