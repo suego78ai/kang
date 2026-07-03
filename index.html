@@ -89,6 +89,16 @@
           <p class="text-sm text-slate-500" id="excel-drop-subtext">필수 컬럼: 학교명, 권역, 담당자, 전화번호, 프로그램</p>
           <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="hidden">
         </div>
+        
+        <!-- Manual Save Action Buttons (Hidden by default) -->
+        <div id="excel-action-buttons" class="mt-4 flex gap-3 justify-center hidden">
+          <button id="btn-excel-save" class="bg-emerald-600 text-white font-bold px-6 py-2.5 rounded-lg shadow-md hover:bg-emerald-700 transition flex items-center gap-2">
+            <i class="fa-solid fa-check"></i> DB에 최종 등록
+          </button>
+          <button id="btn-excel-cancel" class="bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-lg shadow-sm hover:bg-slate-300 transition flex items-center gap-2">
+            <i class="fa-solid fa-xmark"></i> 업로드 취소
+          </button>
+        </div>
       </div>
 
 
@@ -169,21 +179,25 @@
                         </select>
                     </div>
 
-                    <div class="flex flex-col">
-                        <label class="text-[10px] font-bold text-slate-500 mb-0.5">누락 서류</label>
-                        <input type="text" id="filter-missing" placeholder="서류명 (예: 신분증)" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-32">
-                    </div>
-                    
-                    
-                    <div class="flex items-end gap-2 ml-auto mt-auto">
+                    <div class="flex items-end gap-2">
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-bold text-slate-500 mb-0.5">누락 서류</label>
+                            <input type="text" id="filter-missing" placeholder="서류명 (예: 신분증)" class="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-inha-blue w-32">
+                        </div>
                         <button id="btn-search" class="bg-slate-800 text-white font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-slate-700 transition flex items-center gap-2 shadow-sm h-[34px]">
                             <i class="fa-solid fa-magnifying-glass"></i> 검색
                         </button>
+                    </div>
+                    
+                    <div class="flex items-end gap-2 ml-auto mt-auto">
                         <button id="btn-reset-filters" class="bg-slate-200 text-slate-700 font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-slate-300 transition flex items-center gap-2 shadow-sm h-[34px]">
                             <i class="fa-solid fa-rotate-left"></i> 전체 리스트 보기
                         </button>
                         <button id="btn-download-zip" class="bg-inha-blue text-white font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-inha-navy transition flex items-center gap-2 shadow-sm h-[34px]">
                             <i class="fa-solid fa-file-zipper"></i> 선택 ZIP 다운로드
+                        </button>
+                        <button id="btn-reset-data" class="bg-rose-500 text-white font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-rose-600 transition flex items-center gap-2 shadow-sm h-[34px]">
+                            <i class="fa-solid fa-trash-can"></i> 데이터 초기화
                         </button>
                     </div>
 
@@ -211,6 +225,10 @@
                   <!-- JS Injected -->
                 </tbody>
             </table>
+        </div>
+        
+        <!-- Pagination Container -->
+        <div id="pagination-container" class="w-full flex justify-center items-center py-4 gap-2 bg-slate-50 border-t border-slate-200 rounded-b-xl">
         </div>
       </div>
     </section>
@@ -285,6 +303,7 @@
   </div>
 
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
-  <script src="./app.js"></script>
+  <!-- Scripts -->
+  <script src="app.js?v=5"></script>
 </body>
 </html>

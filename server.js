@@ -356,50 +356,71 @@ app.post("/api/instructor-docs/upload", (req, res) => {
       return res.status(500).json({ error: "파일 업로드 처리 중 에러가 발생했습니다." });
     }
     
-     const { instructorName, email, className, phone } = req.body;
-     if (!instructorName || !className) {
-       return res.status(400).json({ error: "필수 정보(강사명, 분반 프로그램명)가 누락되었습니다." });
-     }
-     
-     const db = readInstructorDocsDb();
-     const newId = db.length > 0 ? Math.max(...db.map(i => i.id)) + 1 : 1;
-     
-     const d = new Date();
-     const year = d.getFullYear();
-     const month = String(d.getMonth() + 1).padStart(2, '0');
-     const day = String(d.getDate()).padStart(2, '0');
-     const dateStr = `${year}-${month}-${day}`;
-     
-     const folderName = `${instructorName.trim()}-${dateStr}`;
-     const folderPath = `/uploads/${folderName}`;
-     
-     const getDocStatus = (fieldName) => {
-       if (req.files && req.files[fieldName] && req.files[fieldName][0]) {
-         return req.files[fieldName][0].filename; // 파일명을 저장
-       }
-       return "❌ 미제출";
-     };
-     
-     const newDocRecord = {
-       id: newId,
-       class: className,
-       name: instructorName,
-       email: email || "",
-       phone: phone || "",
-       folder: folderPath, // 로컬 업로드 폴더 주소 저장
-       doc1: getDocStatus('docFile1'),
-       doc2: getDocStatus('docFile2'),
-       doc3: getDocStatus('docFile3'),
-       doc4: getDocStatus('docFile4'),
-       doc5: getDocStatus('docFile5'),
-       date: dateStr, // 제출 날짜
-       status: "검토중" // 관리자 검토를 위한 기본 상태 설정
-     };
-     
-     db.push(newDocRecord);
-     writeInstructorDocsDb(db);
+    const { instructorName, email, className, phone, status, role } = req.body;
+    if (!instructorName || !className || !phone) {
+      return res.status(400).json({ error: "필수 정보(강사명, 분반 프로그램명, 연락처)가 누락되었습니다." });
+    }
     
-    res.status(201).json({ success: true, message: "서류 제출이 완료되었습니다.", record: newDocRecord });
+    const db = readInstructorDocsDb();
+    const existingIndex = db.findIndex(i => i.name === instructorName && i.phone === phone && i.className === className);
+    
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    const folderName = `${instructorName.trim()}-${dateStr}`;
+    const folderPath = `/uploads/${folderName}`;
+    
+    let target;
+    if (existingIndex !== -1) {
+      target = db[existingIndex];
+      if (email) target.email = email;
+      target.folder = folderPath;
+      if (status) target.status = status;
+      if (role) target.role = role;
+      
+      target.last_submission_datetime = new Date().toLocaleString('ko-KR');
+      if (!target.first_submission_date) target.first_submission_date = `${year}${month}${day}`;
+    } else {
+      target = {
+        id: `inst-manual-${Date.now()}`,
+        className, name: instructorName, email: email || "", phone, folder: folderPath,
+        first_submission_date: `${year}${month}${day}`,
+        last_submission_datetime: new Date().toLocaleString('ko-KR'),
+        status: status || "일반", role: role || "주강사",
+        files: {}
+      };
+      db.push(target);
+    }
+    
+    target.files = target.files || {};
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach(file => {
+        const field = file.fieldname;
+        if (field.startsWith('doc9_')) {
+          target.files['9'] = target.files['9'] || [];
+          target.files['9'].push(file.filename);
+        } else if (field.startsWith('doc10_')) {
+          target.files['10'] = target.files['10'] || [];
+          target.files['10'].push(file.filename);
+        } else {
+          // If the fieldname is like "doc1", remove "doc" and use the number as key, else just keep fieldname.
+          if (/^doc\d+$/.test(field)) {
+            const num = field.replace('doc', '');
+            target.files[num] = target.files[num] || [];
+            target.files[num].push(file.filename);
+          } else {
+            target.files[field] = target.files[field] || [];
+            target.files[field].push(file.filename);
+          }
+        }
+      });
+    }
+    
+    writeInstructorDocsDb(db);
+    return res.status(existingIndex !== -1 ? 200 : 201).json({ success: true, message: "서류 업로드가 완료되었습니다.", record: target });
   });
 });
 

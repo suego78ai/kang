@@ -1,10 +1,13 @@
 let state = {
   instructorDocs: [],
+  pendingExcelDocs: [],
   isAdminAuthenticated: sessionStorage.getItem("digitalsaessak-admin-auth") === "true",
   adminToken: sessionStorage.getItem("digitalsaessak-admin-token") || ""
 };
 const API_URL = "http://localhost:3000/api";
 let isOnline = false;
+let currentPage = 1;
+const itemsPerPage = 20;
 
 const DOM = {
   adminLoginForm: document.getElementById("admin-login-form"),
@@ -108,11 +111,11 @@ function maskPhone(phone) {
   if (!phone) return "-";
   const cleaned = phone.replace(/[^0-9]/g, '');
   if (cleaned.length === 11) {
-    return `010-****-${cleaned.slice(7)}`;
+    return `010-${cleaned.slice(3, 7)}-${cleaned.slice(7)}`;
   } else if (cleaned.length === 10) {
-    return `010-***-${cleaned.slice(6)}`;
+    return `010-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
   }
-  return phone; // if totally malformed, return as is
+  return phone; 
 }
 
 const APIService = {
@@ -231,128 +234,149 @@ function renderInstructorDocs() {
     if (fStatus !== "all" && doc.status !== fStatus) return false;
     
     if (dStart || dEnd) {
-      if (!doc.last_submission_datetime) return false;
-      // parse "2026. 7. 1. 오전 10:30:00" -> tricky. 
-      // Fortunately first_submission_date is "YYYYMMDD".
-      let subDateStr = doc.first_submission_date; // "20260701"
-      if (!subDateStr) return false;
-      
+      if (!doc.first_submission_date) return false;
+      let subDateStr = doc.first_submission_date;
       const year = parseInt(subDateStr.substring(0,4));
       const month = parseInt(subDateStr.substring(4,6)) - 1;
       const day = parseInt(subDateStr.substring(6,8));
       const subDate = new Date(year, month, day);
-      
       if (dStart && subDate < dStart) return false;
       if (dEnd && subDate > dEnd) return false;
     }
     
     const required = getRequiredDocs(doc.status || "일반", doc.role || "주강사");
     let missingStr = "";
-    required.forEach(docId => {
-      const missing = checkMissingSubFiles(docId, doc.files);
-      if (missing.length > 0) missingStr += ` ${docId}번 ${DOC_TYPES[docId]} ${missing.join(',')}`;
-    });
-    
+    if (doc.files) {
+       const missing = checkMissingSubFiles(6, doc.files);
+       if(missing.length) missingStr += " 강사비";
+       const missing7 = checkMissingSubFiles(7, doc.files);
+       if(missing7.length) missingStr += " 근로";
+    }
+    for (let docId of required) {
+      if (docId !== 6 && docId !== 7) {
+        if (!doc.files || !doc.files[docId] || doc.files[docId].length === 0) {
+          missingStr += " " + (DOC_TYPES[docId] || "");
+        }
+      }
+    }
     if (fMissing && !missingStr.toLowerCase().includes(fMissing)) return false;
-    
     return true;
   });
 
-  if (filteredDocs.length === 0) {
-    DOM.spreadsheetTbody.innerHTML = `
-      <tr>
-        <td colspan="9" class="py-8 text-center text-slate-500">
-          <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300"></i>
-          <p>등록된 강사가 없거나 검색 결과가 없습니다.</p>
-        </td>
-      </tr>
-    `;
-    updateDashboardStats();
-    return;
-  }
+  let totalCount = filteredDocs.length;
+  const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pagedDocs = filteredDocs.slice(startIndex, endIndex);
 
-  filteredDocs.forEach((doc, index) => {
+  let completeCount = 0;
+  const rowsHtml = pagedDocs.map((doc, idx) => {
     const required = getRequiredDocs(doc.status || "일반", doc.role || "주강사");
-    let approvedCount = 0;
-    let missingDocs = [];
-
-    required.forEach(docId => {
-      const missing = checkMissingSubFiles(docId, doc.files);
-      if (missing.length === 0) {
-        approvedCount++;
-      } else {
-        if (docId === 6 || docId === 7) missingDocs.push(`${docId}번(${missing.join(',')})`);
-        else missingDocs.push(`${docId}번`);
-      }
-    });
-
-    const isComplete = required.length > 0 && approvedCount === required.length;
-    let statusHtml = '';
-    if (isComplete) {
-      statusHtml = `<span class="text-emerald-600 font-bold text-sm">완료 (${approvedCount}/${required.length})</span>`;
-    } else {
-      statusHtml = `
-        <div class="text-rose-600 font-bold text-sm mb-1">❌ 미제출 (${approvedCount}/${required.length})</div>
-        <div class="text-[11px] text-slate-500 leading-tight max-w-[250px] truncate" title="${missingDocs.join(', ')}">
-          ${missingDocs.join(', ')}
-        </div>
-      `;
+    let isRowComplete = true;
+    for (let docId of required) {
+      if (checkMissingSubFiles(docId, doc.files).length > 0) isRowComplete = false;
     }
-
-    const tr = document.createElement("tr");
-    tr.className = "border-b border-slate-100 hover:bg-slate-50 transition";
-    tr.innerHTML = `
-      <td class="p-3 border-r text-center">
-        <input type="checkbox" class="chk-row rounded text-inha-blue focus:ring-inha-blue" value="${doc.id}">
+    if (isRowComplete) completeCount++;
+    
+    return `<tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+      <td class="p-3 text-center border-r"><input type="checkbox" class="row-chk rounded text-inha-blue focus:ring-inha-blue" value="${doc.id}"></td>
+      <td class="p-3 border-r text-slate-800 font-medium whitespace-nowrap">
+        ${doc.isPending ? '<span class="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded mr-1 font-bold">[저장 대기]</span>' : ''}
+        ${doc.isSaved ? '<span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded mr-1 font-bold">[저장 완료]</span>' : ''}
+        ${doc.className || '-'}
       </td>
-      <td class="p-3 border-r font-bold text-slate-800 text-sm truncate">${doc.className || '-'}</td>
-      <td class="p-3 border-r text-slate-600 truncate text-sm">${doc.school || '-'}</td>
+      <td class="p-3 border-r text-slate-600 whitespace-nowrap">${doc.school || '-'}</td>
       <td class="p-3 border-r font-bold text-slate-800 text-center">${doc.name || '-'}</td>
-      <td class="p-3 border-r text-slate-600 text-center font-mono text-sm">${maskPhone(doc.phone)}</td>
-      <td class="p-3 border-r text-slate-500 text-xs text-center">${doc.last_submission_datetime || '-'}</td>
+      <td class="p-3 border-r text-slate-600 text-center whitespace-nowrap">${maskPhone(doc.phone)}</td>
+      <td class="p-3 border-r text-xs text-slate-500 text-center whitespace-nowrap">${doc.last_submission_datetime || '-'}</td>
       <td class="p-3 border-r text-center">
-        <span class="${doc.status === '교원' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'} px-2 py-1 rounded text-xs font-bold">${doc.status || '일반'}</span>
+        <span class="px-2 py-1 rounded text-xs font-bold ${doc.status === '교원' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}">
+          ${doc.status || '일반'}
+        </span>
       </td>
-      <td class="p-3 border-r">${statusHtml}</td>
+      <td class="p-3 border-r text-center">
+        <span class="px-2 py-1 rounded text-xs font-bold bg-blue-50 text-inha-blue border border-blue-100">
+          ${doc.role || '-'}
+        </span>
+      </td>
+      <td class="p-3 border-r">
+        ${isRowComplete 
+          ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200"><i class="fa-solid fa-check"></i> 모든 서류 완비</span>' 
+          : '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200"><i class="fa-solid fa-triangle-exclamation"></i> 보완 필요</span>'
+        }
+      </td>
       <td class="p-3 text-center">
-        <button class="btn-detail bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded text-xs font-semibold transition" data-id="${doc.id}">상세</button>
+        <button class="btn-detail bg-slate-100 hover:bg-inha-blue hover:text-white text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm" data-id="${doc.id}">
+          <i class="fa-solid fa-folder-open"></i> 상세
+        </button>
       </td>
-    `;
-    DOM.spreadsheetTbody.appendChild(tr);
+    </tr>`;
+  }).join('');
+  
+  if (pagedDocs.length === 0) {
+    DOM.spreadsheetTbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-500"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300"></i><p>등록된 강사가 없거나 검색 결과가 없습니다.</p></td></tr>`;
+  } else {
+    DOM.spreadsheetTbody.innerHTML = rowsHtml;
+  }
+  
+  let overallComplete = 0;
+  filteredDocs.forEach(d => {
+      let c = true;
+      const reqs = getRequiredDocs(d.status || "일반", d.role || "주강사");
+      for(let docId of reqs) {
+          if (checkMissingSubFiles(docId, d.files).length > 0) c = false;
+      }
+      if(c) overallComplete++;
   });
+  
+  if (DOM.countComplete) DOM.countComplete.textContent = overallComplete + "명";
+  if (DOM.countPending) DOM.countPending.textContent = (totalCount - overallComplete) + "명";
+  if (DOM.overallCompletionRate) {
+    const rate = totalCount === 0 ? 0 : Math.round((overallComplete / totalCount) * 100);
+    DOM.overallCompletionRate.textContent = rate + "%";
+    DOM.overallProgressBar.style.width = rate + "%";
+  }
 
   document.querySelectorAll('.btn-detail').forEach(btn => {
     btn.addEventListener('click', (e) => {
       showSubmissionDetails(e.currentTarget.getAttribute('data-id'));
     });
   });
-
-  updateDashboardStats();
+  renderPagination(totalPages);
 }
 
-function updateDashboardStats() {
-  if (!state.instructorDocs || state.instructorDocs.length === 0) {
-    if (DOM.overallCompletionRate) DOM.overallCompletionRate.textContent = "0%";
-    if (DOM.overallProgressBar) DOM.overallProgressBar.style.width = "0%";
-    if (DOM.countComplete) DOM.countComplete.textContent = "0명";
-    if (DOM.countPending) DOM.countPending.textContent = "0명";
-    return;
+function renderPagination(totalPages) {
+  const container = document.getElementById("pagination-container");
+  if (!container) return;
+  if (totalPages <= 1) { container.innerHTML = ""; return; }
+  
+  let html = `<button class="px-3 py-1 rounded border ${currentPage === 1 ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-slate-100'} transition" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i> 이전</button>`;
+  
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === currentPage) {
+      html += `<button class="px-3 py-1 rounded bg-inha-blue text-white font-bold shadow-md">${i}</button>`;
+    } else {
+      if (totalPages > 10 && i > 3 && i < totalPages - 2 && Math.abs(i - currentPage) > 2) {
+         if (Math.abs(i - currentPage) === 3) html += `<span class="px-2 text-slate-400">...</span>`;
+         continue;
+      }
+      html += `<button class="px-3 py-1 rounded border bg-white hover:bg-slate-100 transition" onclick="changePage(${i})">${i}</button>`;
+    }
   }
-  let completeUsers = 0, pendingUsers = 0;
-  state.instructorDocs.forEach(doc => {
-    const required = getRequiredDocs(doc.status || "일반", doc.role || "주강사");
-    let approvedCount = 0;
-    required.forEach(docId => {
-      if (checkMissingSubFiles(docId, doc.files).length === 0) approvedCount++;
-    });
-    if (approvedCount === required.length) completeUsers++;
-    else pendingUsers++;
-  });
-  const rate = Math.round((completeUsers / state.instructorDocs.length) * 100);
-  if (DOM.overallCompletionRate) DOM.overallCompletionRate.textContent = `${rate}%`;
-  if (DOM.overallProgressBar) DOM.overallProgressBar.style.width = `${rate}%`;
-  if (DOM.countComplete) DOM.countComplete.textContent = `${completeUsers}명`;
-  if (DOM.countPending) DOM.countPending.textContent = `${pendingUsers}명`;
+  
+  html += `<button class="px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-slate-100'} transition" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>다음 <i class="fa-solid fa-chevron-right"></i></button>`;
+  container.innerHTML = html;
+}
+
+window.changePage = function(page) {
+  currentPage = page;
+  renderInstructorDocs();
+};
+
+function updateDashboardStats() {
 }
 
 let currentEditingId = null;
@@ -452,10 +476,33 @@ if (DOM.chkAll) {
 
 if (DOM.btnDownloadZip) {
   DOM.btnDownloadZip.addEventListener('click', async () => {
-    const selectedIds = Array.from(document.querySelectorAll('.chk-row:checked')).map(chk => chk.value);
+    const selectedIds = Array.from(document.querySelectorAll('.row-chk:checked')).map(chk => chk.value);
     if (selectedIds.length === 0) { showToast("다운로드할 강사를 선택해주세요.", "warning"); return; }
     showToast("ZIP 파일 생성을 시작합니다...", "info");
     try { await APIService.downloadZip(selectedIds); showToast("다운로드 성공!", "success"); } catch(err) { showToast("다운로드 실패: " + err.message, "error"); }
+  });
+}
+
+const btnResetData = document.getElementById("btn-reset-data");
+if (btnResetData) {
+  btnResetData.addEventListener('click', async () => {
+    if (!confirm("모든 데이터를 초기화하시겠습니까? (이 작업은 되돌릴 수 없습니다)")) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/instructors/reset`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${state.adminToken}` }
+      });
+      if (res.ok) {
+        state.instructorDocs = [];
+        currentPage = 1;
+        renderInstructorDocs();
+        showToast("데이터가 모두 초기화되었습니다.", "success");
+      } else {
+        showToast("데이터 초기화에 실패했습니다.", "error");
+      }
+    } catch(err) {
+      showToast("서버 오류로 초기화에 실패했습니다.", "error");
+    }
   });
 }
 
@@ -485,38 +532,43 @@ async function handleExcelFile(file) {
     const dropText = document.getElementById('excel-drop-text');
     if (dropText) dropText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 자동 저장 중...';
     
+    const newDocs = [];
     for (let row of json) {
-      const name = row['담당자'];
-      const phone = String(row['전화번호'] || '');
-      const school = row['학교명'];
-      const region = row['권역'];
-      const program = row['프로그램'];
-      if (name && phone) {
-        const exists = state.instructorDocs.find(d => d.name === name && d.phone === phone);
-        if (!exists) {
-          const newDoc = {
-            id: `inst-${Date.now()}-${Math.random().toString(36).substring(2,9)}`,
-            name, phone, school, region, className: program,
-            status: "일반", role: "주강사", first_submission_date: null, files: {}
-          };
-          if (isOnline) {
-             try {
-                await fetch(`${API_URL}/admin/instructors/bulk-add`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.adminToken}` },
-                  body: JSON.stringify(newDoc)
-                });
-             } catch(e) {}
-          } else { state.instructorDocs.unshift(newDoc); }
-          addedCount++;
-        }
+      const name = (row['담당자'] || '').trim();
+      const phoneRaw = String(row['전화번호'] || '').replace(/-/g, '');
+      const phone = phoneRaw.length === 10 && phoneRaw.startsWith('10') ? '0' + phoneRaw : phoneRaw;
+      const school = row['학교명'] || '';
+      const region = row['권역'] || '';
+      const program = row['프로그램'] || '';
+      
+      if (name) {
+        const newDoc = {
+          id: `inst-${Date.now()}-${Math.random().toString(36).substring(2,9)}`,
+          name, phone, school, region, className: program,
+          status: "일반", role: "", first_submission_date: null, files: {}
+        };
+        newDocs.push(newDoc);
       }
     }
     
-    showToast(`${addedCount}명의 데이터가 DB에 즉시 자동 등록되었습니다.`, "success");
+    if (newDocs.length > 0) {
+      // Mark as pending
+      newDocs.forEach(d => d.isPending = true);
+      state.pendingExcelDocs = newDocs;
+      
+      // Merge for preview
+      state.instructorDocs = [...state.pendingExcelDocs, ...state.instructorDocs.filter(d => !d.isPending)];
+      
+      // Show action buttons
+      const btnGroup = document.getElementById('excel-action-buttons');
+      if (btnGroup) btnGroup.classList.remove('hidden');
+    }
+    
+    showToast(`${newDocs.length}건의 데이터가 읽혀졌습니다. [DB에 최종 등록] 버튼을 눌러야 저장됩니다.`, "info");
     if (dropText) dropText.textContent = "엑셀 파일을 이곳에 드래그하거나 클릭하여 업로드하세요.";
     
-    if (isOnline) await initInstructorDocs(); else { populateDatalists(); renderInstructorDocs(); }
+    populateDatalists();
+    renderInstructorDocs();
   };
   reader.readAsArrayBuffer(file);
 }
@@ -548,7 +600,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnReset = document.getElementById("btn-reset-filters");
   
   if (btnSearch) {
-    btnSearch.addEventListener("click", renderInstructorDocs);
+    btnSearch.addEventListener("click", () => {
+      currentPage = 1;
+      renderInstructorDocs();
+    });
   }
   
   if (btnReset) {
@@ -560,8 +615,84 @@ document.addEventListener("DOMContentLoaded", async () => {
       if(DOM.filterDateEnd) DOM.filterDateEnd.value = "";
       if(DOM.filterStatus) DOM.filterStatus.value = "all";
       if(DOM.filterMissing) DOM.filterMissing.value = "";
+      currentPage = 1;
       renderInstructorDocs();
       showToast("전체 리스트가 표시되었습니다.", "info");
+    });
+  }
+  
+  const btnExcelSave = document.getElementById("btn-excel-save");
+  const btnExcelCancel = document.getElementById("btn-excel-cancel");
+  
+  if (btnExcelSave) {
+    btnExcelSave.addEventListener("click", async () => {
+      if (state.pendingExcelDocs.length === 0) return;
+      
+      const btnGroup = document.getElementById('excel-action-buttons');
+      const dropText = document.getElementById('excel-drop-text');
+      if (dropText) dropText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> DB에 저장 중...';
+      
+      let successCount = 0;
+      if (isOnline) {
+        for(let doc of state.pendingExcelDocs) {
+           try {
+             // Create a copy without isPending
+             const payload = { ...doc };
+             delete payload.isPending;
+             const res = await fetch(`${API_URL}/admin/instructors/bulk-add`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.adminToken}` },
+               body: JSON.stringify(payload)
+             });
+             if (res.ok) successCount++;
+           } catch(err) {}
+        }
+      } else {
+         const offlineDocs = state.pendingExcelDocs.map(d => {
+           const copy = { ...d };
+           delete copy.isPending;
+           return copy;
+         });
+         state.instructorDocs.unshift(...offlineDocs);
+         successCount = offlineDocs.length;
+      }
+      
+      const savedIds = state.pendingExcelDocs.map(d => d.id);
+      state.pendingExcelDocs = [];
+      if (btnGroup) btnGroup.classList.add('hidden');
+      if (dropText) dropText.textContent = "엑셀 파일을 이곳에 드래그하거나 클릭하여 업로드하세요.";
+      showToast(`${successCount}명의 데이터가 DB에 최종 등록되었습니다.`, "success");
+      
+      if (isOnline) {
+        await initInstructorDocs();
+      } else { 
+        populateDatalists(); 
+      }
+      
+      // Tag as saved
+      state.instructorDocs.forEach(d => {
+        if (savedIds.includes(d.id)) d.isSaved = true;
+      });
+      renderInstructorDocs();
+      
+      // Remove badge after 5 seconds
+      setTimeout(() => {
+        state.instructorDocs.forEach(d => d.isSaved = false);
+        renderInstructorDocs();
+      }, 5000);
+    });
+  }
+  
+  if (btnExcelCancel) {
+    btnExcelCancel.addEventListener("click", () => {
+      state.pendingExcelDocs = [];
+      const btnGroup = document.getElementById('excel-action-buttons');
+      if (btnGroup) btnGroup.classList.add('hidden');
+      showToast("엑셀 업로드가 취소되었습니다.", "info");
+      
+      // Remove pending docs from existing state and re-render
+      state.instructorDocs = state.instructorDocs.filter(d => !d.isPending);
+      renderInstructorDocs();
     });
   }
   
@@ -572,6 +703,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       el.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
+          currentPage = 1;
           renderInstructorDocs();
         }
       });

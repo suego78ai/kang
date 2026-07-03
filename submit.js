@@ -1,3 +1,4 @@
+const API_URL = "http://localhost:3000/api";
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
@@ -19,7 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-const API_URL = "http://localhost:3000/api";
 let currentStep = 0;
 let instructorData = null;
 let roundCount = { 9: 1, 10: 1 };
@@ -65,9 +65,59 @@ const DOC_NAMES = {
   11: "안전관리 서약서"
 };
 
-function getRequiredDocs(status) {
-  if (status === "교원") return [2, 3, 4, 5, 8, 11]; // step2: 2,8,11 | step3: 3,4,5
-  else return [1, 2, 4, 5, 8, 11]; // step2: 1,2,8,11 | step3: 4,5
+// Prevent default form submission via enter key
+if (DOM.submitForm) {
+  DOM.submitForm.addEventListener('submit', e => e.preventDefault());
+}
+
+// Add event listeners for radio styling
+DOM.statusRadios.forEach(radio => {
+  radio.addEventListener('change', () => {
+    document.querySelectorAll('.type-radio').forEach(label => {
+      label.classList.remove('border-inha-blue', 'bg-blue-50');
+      label.classList.add('border-slate-200');
+    });
+    if (radio.checked) {
+      const label = radio.closest('.type-radio');
+      if (label) {
+        label.classList.add('border-inha-blue', 'bg-blue-50');
+        label.classList.remove('border-slate-200');
+      }
+    }
+  });
+});
+
+DOM.roleRadios.forEach(radio => {
+  radio.addEventListener('change', () => {
+    document.querySelectorAll('.role-radio').forEach(label => {
+      label.classList.remove('border-emerald-600', 'bg-emerald-50');
+      label.classList.add('border-slate-200');
+    });
+    if (radio.checked) {
+      const label = radio.closest('.role-radio');
+      if (label) {
+        label.classList.add('border-emerald-600', 'bg-emerald-50');
+        label.classList.remove('border-slate-200');
+      }
+    }
+  });
+});
+
+function getRequiredDocs(status, role) {
+  role = role || "주강사";
+  if (status === "교원") {
+    if (role === "주강사") return [3, 4, 5, 6, 8];
+    if (role === "보조강사") return [6];
+    if (role === "운영요원") return [1, 2, 7, 9, 10, 11];
+    if (role === "안전요원") return [1, 2, 7, 11];
+  } else {
+    // 프리랜서(일반)
+    if (role === "주강사") return [1, 2, 4, 5, 6];
+    if (role === "보조강사") return [6];
+    if (role === "운영요원") return [1, 2, 7, 9, 10, 11];
+    if (role === "안전요원") return [1, 2, 7, 11];
+  }
+  return [];
 }
 
 function showToast(message, type = "info") {
@@ -100,7 +150,6 @@ function updateUI() {
     DOM.navButtons.classList.remove('hidden');
     DOM.stepIndicator.classList.remove('hidden');
     
-    // Update indicator UI
     DOM.progressBar.style.width = `${(currentStep - 1) * 33.3}%`;
     for(let i=1; i<=4; i++) {
       const circle = document.getElementById(`indicator-${i}`);
@@ -113,7 +162,6 @@ function updateUI() {
       }
     }
     
-    // Nav buttons
     if (currentStep === 1) DOM.btnPrev.classList.add('hidden');
     else DOM.btnPrev.classList.remove('hidden');
     
@@ -134,17 +182,152 @@ function updateUI() {
 function renderDocInputs() {
   const status = document.querySelector('input[name="instructor-status"]:checked').value;
   const role = document.querySelector('input[name="instructor-role"]:checked').value;
-  formData.append('status', status);
-  formData.append('role', role);
+  const reqs = getRequiredDocs(status, role);
+
+  if (DOM.docGroupStep2) DOM.docGroupStep2.innerHTML = '';
+  if (DOM.docGroupStep3Basic) DOM.docGroupStep3Basic.innerHTML = '';
+  
+  reqs.forEach(docId => {
+    // skip 6, 7 as they are extra inputs
+    if (docId === 6 || docId === 7) return;
+    const container = [1, 2, 8, 11].includes(docId) ? DOM.docGroupStep2 : DOM.docGroupStep3Basic;
+    if (container) {
+      let isSubmitted = false;
+      let fileStr = "";
+      if (instructorData && instructorData.files) {
+        if (docId === 9 || docId === 10) {
+          isSubmitted = instructorData.files[docId] && instructorData.files[docId].length > 0;
+          if (isSubmitted) fileStr = instructorData.files[docId].length + "개 파일 등록됨";
+        } else {
+          isSubmitted = !!instructorData.files[docId];
+          if (isSubmitted) fileStr = instructorData.files[docId];
+        }
+      }
+      
+      const badgeHtml = isSubmitted ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold ml-2 relative top-[-1px]">✅ ${fileStr}</span>` : '';
+      const reqAttr = isSubmitted ? '' : 'required';
+
+      container.innerHTML += `
+        <div class="p-4 border border-slate-200 rounded-lg bg-white relative">
+          <label class="block text-sm font-bold text-slate-800 mb-1">${docId}. ${DOC_NAMES[docId] || ''} ${badgeHtml}</label>
+          <input type="file" name="doc${docId}" class="w-full text-sm mt-1 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700" ${reqAttr}>
+        </div>
+      `;
+    }
+  });
+
+  // Update hardcoded inputs (Step 3)
+  ['common_id', 'common_bank', 'doc6_resume', 'doc7_log'].forEach(fieldName => {
+    const input = document.querySelector(`input[name="${fieldName}"]`);
+    if (input) {
+      const label = input.previousElementSibling;
+      // remove old badge if exists
+      const oldBadge = label.querySelector('.submit-badge');
+      if (oldBadge) oldBadge.remove();
+      
+      if (instructorData && instructorData.files && instructorData.files[fieldName]) {
+        label.innerHTML += `<span class="submit-badge text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold ml-2 relative top-[-1px]">✅ 기존 제출됨</span>`;
+      }
+    }
+  });
+}
+
+DOM.btnAuth.addEventListener('click', async () => {
+  const className = document.getElementById('auth-program').value;
+  const name = DOM.authName.value.trim();
+  const phone = DOM.authPhone.value.trim();
+
+  if (!className || !name || !phone) {
+    DOM.authError.textContent = "모든 항목을 입력해주세요.";
+    DOM.authError.classList.remove('hidden');
+    return;
+  }
+
+  DOM.btnAuth.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 조회 중...';
+  DOM.btnAuth.disabled = true;
+  DOM.authError.classList.add('hidden');
 
   try {
-    const res = await fetch(`${API_URL}/instructor/submit`, {
+    const res = await fetch(`${API_URL}/instructor/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ className, name, phone })
+    });
+    const data = await res.json();
+    if (data.success) {
+      instructorData = data.data;
+      if (DOM.infoDisplay) {
+        DOM.infoDisplay.innerHTML = `학교: <span class="text-inha-blue">${instructorData.school}</span>, 프로그램: <span class="text-inha-blue">${instructorData.className}</span>`;
+      }
+      
+      const typeRadios = document.querySelectorAll('input[name="instructor-status"]');
+      typeRadios.forEach(r => {
+        if (r.value === instructorData.status) { 
+          r.checked = true; 
+          r.dispatchEvent(new Event('change')); // Trigger styling update
+        }
+      });
+      
+      const roleRadios = document.querySelectorAll('input[name="instructor-role"]');
+      roleRadios.forEach(r => {
+        if (r.value === instructorData.role) { 
+          r.checked = true; 
+          r.dispatchEvent(new Event('change')); // Trigger styling update
+        }
+      });
+
+      // 항상 대시보드(Step 5)를 먼저 보여주어 제출 현황을 파악하게 함
+      currentStep = 5;
+      renderDashboard();
+      updateUI();
+    } else {
+      DOM.authError.textContent = data.error || "일치하는 강사 정보가 없습니다.";
+      DOM.authError.classList.remove('hidden');
+    }
+  } catch (e) {
+    DOM.authError.textContent = "서버 연결에 실패했습니다.";
+    DOM.authError.classList.remove('hidden');
+  } finally {
+    DOM.btnAuth.innerHTML = '조회 및 시작하기';
+    DOM.btnAuth.disabled = false;
+  }
+});
+
+DOM.btnNext.addEventListener('click', () => {
+  if (currentStep === 1) renderDocInputs();
+  if (currentStep < 4) { currentStep++; updateUI(); }
+});
+
+DOM.btnPrev.addEventListener('click', () => {
+  if (currentStep > 1) { currentStep--; updateUI(); }
+});
+
+DOM.btnSubmit.addEventListener('click', async (e) => {
+  e.preventDefault();
+  if (!instructorData) return;
+  DOM.btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 업로드 중...';
+  DOM.btnSubmit.disabled = true;
+
+  const formData = new FormData(DOM.submitForm);
+  const status = document.querySelector('input[name="instructor-status"]:checked').value;
+  const role = document.querySelector('input[name="instructor-role"]:checked').value;
+  formData.append('status', status);
+  formData.append('role', role);
+  formData.append('instructorId', instructorData.id);
+  formData.append('instructorName', instructorData.name);
+  formData.append('className', instructorData.className);
+  formData.append('phone', instructorData.phone);
+
+  try {
+    const res = await fetch(`${API_URL}/instructor-docs/upload`, {
       method: 'POST',
       body: formData
     });
     const data = await res.json();
     if (data.success) {
+      instructorData = data.record; // Use updated record from server
       currentStep = 5;
+      renderDashboard();
       updateUI();
     } else {
       showToast(data.error || "업로드 실패", "error");
@@ -156,3 +339,87 @@ function renderDocInputs() {
     DOM.btnSubmit.disabled = false;
   }
 });
+
+function renderDashboard() {
+  const listEl = document.getElementById('dashboard-file-list');
+  const badgeEl = document.getElementById('dashboard-status-badge');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  const status = instructorData.status || "일반";
+  const role = instructorData.role || "주강사";
+  const reqs = getRequiredDocs(status, role);
+  
+  let totalDocs = reqs.length;
+  let submittedDocs = 0;
+
+  reqs.forEach(docId => {
+    let isSubmitted = false;
+    let title = `${docId}. ${DOC_NAMES[docId] || ''}`;
+    let subText = "미제출";
+
+    if (instructorData && instructorData.files) {
+      if (docId === 6) {
+        title = "6. 이력서 (신분증/통장 포함)";
+        const f = instructorData.files;
+        if (f.doc6_resume && f.common_id && f.common_bank) isSubmitted = true;
+      } else if (docId === 7) {
+        title = "7. 일일 근로일지 (신분증/통장 포함)";
+        const f = instructorData.files;
+        if (f.doc7_log && f.common_id && f.common_bank) isSubmitted = true; 
+      } else if (docId === 9 || docId === 10) {
+        if (instructorData.files[docId] && instructorData.files[docId].length > 0) isSubmitted = true;
+      } else {
+        if (instructorData.files[docId]) isSubmitted = true;
+      }
+    }
+
+    if (isSubmitted) {
+      submittedDocs++;
+      subText = "제출 완료";
+    }
+
+    listEl.innerHTML += `
+      <li class="px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center ${isSubmitted ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">
+            <i class="fa-solid ${isSubmitted ? 'fa-check' : 'fa-xmark'}"></i>
+          </div>
+          <span class="font-bold text-slate-700">${title}</span>
+        </div>
+        <span class="text-xs font-bold px-2 py-1 rounded ${isSubmitted ? 'text-emerald-700 bg-emerald-50 border border-emerald-100' : 'text-rose-700 bg-rose-50 border border-rose-100'}">
+          ${subText}
+        </span>
+      </li>
+    `;
+  });
+
+  if (totalDocs > 0) {
+    const rate = Math.round((submittedDocs / totalDocs) * 100);
+    badgeEl.textContent = `완료율 ${rate}%`;
+    if (rate === 100) {
+      badgeEl.className = "px-3 py-1 bg-inha-blue text-white text-xs font-bold rounded-full";
+    } else {
+      badgeEl.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
+    }
+    
+    const btnEdit = document.getElementById('btn-edit-submission');
+    if (btnEdit) {
+      if (submittedDocs === 0) {
+        btnEdit.innerHTML = '<i class="fa-solid fa-upload"></i> 서류 제출 시작하기';
+      } else if (rate === 100) {
+        btnEdit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 제출한 서류 수정하기';
+      } else {
+        btnEdit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 미제출 서류 마저 등록하기 (수정)';
+      }
+    }
+  }
+}
+
+const btnEdit = document.getElementById('btn-edit-submission');
+if (btnEdit) {
+  btnEdit.addEventListener('click', () => {
+    currentStep = 1; // 수정하기 버튼 누르면 1단계로 이동
+    updateUI();
+  });
+}
