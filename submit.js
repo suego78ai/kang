@@ -233,6 +233,16 @@ function renderDocInputs() {
   if (c9) c9.classList.toggle('hidden', !reqs.includes(9));
   if (c10) c10.classList.toggle('hidden', !reqs.includes(10));
 
+  const step4Empty = document.getElementById('step-4-empty');
+  const step4Desc = document.getElementById('step-4-desc');
+  if (!reqs.includes(9) && !reqs.includes(10)) {
+    if (step4Empty) step4Empty.classList.remove('hidden');
+    if (step4Desc) step4Desc.classList.add('hidden');
+  } else {
+    if (step4Empty) step4Empty.classList.add('hidden');
+    if (step4Desc) step4Desc.classList.remove('hidden');
+  }
+
   // Update hardcoded inputs (Step 3 and Step 4)
   ['common_id', 'common_bank', 'doc6_resume', 'doc7_log', 'doc9', 'doc10'].forEach(fieldName => {
     const input = document.querySelector(`input[name="${fieldName}"]`);
