@@ -194,6 +194,14 @@ app.get('/api/instructor-docs', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
 });
 
+app.get('/api/instructor-docs/programs', async (req, res) => {
+  try {
+    const names = await Instructor.distinct('className');
+    const data = names.filter(Boolean).map(n => ({ className: n }));
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: 'DB 조회 에러' }); }
+});
+
 app.post('/api/instructor-docs', adminAuth, async (req, res) => {
   try {
     const { docs } = req.body;
